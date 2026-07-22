@@ -14,6 +14,7 @@ function Login() {
     const navigate = useNavigate();
 
 
+
     const handleLogin = async (e) => {
 
         e.preventDefault();
@@ -38,7 +39,6 @@ function Login() {
 
         } catch (error) {
 
-
             console.log(error);
 
 
@@ -46,8 +46,12 @@ function Login() {
                 error.response?.data ||
                 "Login failed"
             );
+
         }
+
     };
+
+
 
 
 
@@ -86,13 +90,14 @@ function Login() {
                                         type="email"
                                         className="form-control"
                                         value={email}
-                                        onChange={(e)=>
+                                        onChange={(e) =>
                                             setEmail(e.target.value)
                                         }
                                         required
                                     />
 
                                 </div>
+
 
 
 
@@ -108,7 +113,7 @@ function Login() {
                                         type="password"
                                         className="form-control"
                                         value={password}
-                                        onChange={(e)=>
+                                        onChange={(e) =>
                                             setPassword(e.target.value)
                                         }
                                         required
@@ -116,6 +121,7 @@ function Login() {
 
 
                                 </div>
+
 
 
 
@@ -145,7 +151,9 @@ function Login() {
         </div>
 
     );
+
 }
+
 
 
 export default Login;
