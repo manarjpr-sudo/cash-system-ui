@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import api from "../api/axios";
 
 import OrderForm from "../components/orders/OrderForm";
 import OrderTable from "../components/orders/OrderTable";
+import { AuthContext } from "../context/AuthContext";
 
 
 function Orders() {
@@ -17,6 +18,10 @@ function Orders() {
     const [showForm, setShowForm] = useState(false);
 
 
+    const { hasPermission } = useContext(AuthContext);
+
+
+
 
     useEffect(() => {
 
@@ -25,6 +30,7 @@ function Orders() {
         loadCustomers();
 
     }, []);
+
 
 
 
@@ -38,7 +44,7 @@ function Orders() {
             setOrders(response.data);
 
 
-        } catch (error) {
+        } catch(error) {
 
             console.log(error);
 
@@ -56,6 +62,7 @@ function Orders() {
 
 
 
+
     const loadCustomers = async () => {
 
         try {
@@ -65,7 +72,7 @@ function Orders() {
             setCustomers(response.data);
 
 
-        } catch (error) {
+        } catch(error) {
 
             console.log(error);
 
@@ -77,10 +84,11 @@ function Orders() {
 
 
 
+
+
     const createOrder = async (order) => {
 
         try {
-
 
             await api.post("/orders", order);
 
@@ -94,18 +102,14 @@ function Orders() {
             loadOrders();
 
 
-
-        } catch (error) {
-
+        } catch(error) {
 
             console.log(error);
-
 
             alert(
                 error.response?.data ||
                 "Failed to create order"
             );
-
 
         }
 
@@ -115,10 +119,10 @@ function Orders() {
 
 
 
+
     const approveOrder = async (id) => {
 
         try {
-
 
             await api.post(
                 `/orders/${id}/approve`
@@ -133,9 +137,7 @@ function Orders() {
 
         } catch(error) {
 
-
             console.log(error);
-
 
             alert(
                 error.response?.data ||
@@ -150,10 +152,10 @@ function Orders() {
 
 
 
+
     const rejectOrder = async (id) => {
 
         try {
-
 
             await api.post(
                 `/orders/${id}/reject`
@@ -168,19 +170,18 @@ function Orders() {
 
         } catch(error) {
 
-
             console.log(error);
-
 
             alert(
                 error.response?.data ||
                 "Failed to reject order"
             );
 
-
         }
 
     };
+
+
 
 
 
@@ -205,6 +206,8 @@ function Orders() {
 
 
 
+
+
     return (
 
         <div className="container mt-4">
@@ -219,20 +222,29 @@ function Orders() {
 
 
 
-                <button
+                {
+                    hasPermission("Create_Order") && (
 
-                    className="btn btn-primary"
+                        <button
 
-                    onClick={() => setShowForm(true)}
+                            className="btn btn-primary"
 
-                >
+                            onClick={() => setShowForm(true)}
 
-                    Create Order
+                        >
 
-                </button>
+                            Create Order
+
+                        </button>
+
+                    )
+                }
+
 
 
             </div>
+
+
 
 
 
@@ -252,6 +264,8 @@ function Orders() {
 
                 )
             }
+
+
 
 
 
