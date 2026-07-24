@@ -1,4 +1,4 @@
-function CustomerTable({ customers, onEdit, onDelete }) {
+function CustomerTable({ customers, onEdit, onDelete, canEdit, canDelete }) {
 
     return (
 
@@ -42,20 +42,32 @@ function CustomerTable({ customers, onEdit, onDelete }) {
 
                                     <td>
 
-                                        <button
-                                            className="btn btn-warning btn-sm me-2"
-                                            onClick={() => onEdit(customer)}
-                                        >
-                                            Edit
-                                        </button>
+                                        {
+                                            canEdit && (
+
+                                                <button
+                                                    className="btn btn-warning btn-sm me-2"
+                                                    onClick={() => onEdit(customer)}
+                                                >
+                                                    Edit
+                                                </button>
+
+                                            )
+                                        }
 
 
-                                        <button
-                                            className="btn btn-danger btn-sm"
-                                            onClick={() => onDelete(customer)}
-                                        >
-                                            Delete
-                                        </button>
+                                        {
+                                            canDelete && (
+
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => onDelete(customer)}
+                                                >
+                                                    Delete
+                                                </button>
+
+                                            )
+                                        }
 
                                     </td>
 

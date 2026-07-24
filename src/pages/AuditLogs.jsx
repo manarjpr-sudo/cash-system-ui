@@ -1,12 +1,32 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+
 
 function AuditLogs() {
 
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { hasPermission } = useContext(AuthContext);
 
+
+    if (!hasPermission("View_AuditLogs")) {
+
+        return (
+
+            <div className="container mt-4">
+
+                <div className="alert alert-danger">
+                    You do not have permission to view audit logs.
+                </div>
+
+            </div>
+
+        );
+
+    }
 
 
     useEffect(() => {
@@ -14,9 +34,6 @@ function AuditLogs() {
         loadLogs();
 
     }, []);
-
-
-
 
 
     const loadLogs = async () => {

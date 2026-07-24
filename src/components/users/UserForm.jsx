@@ -1,158 +1,398 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+    createUser,
+    updateUser
+} from "../../services/userService";
 
 
-function UserForm({ onSave, onCancel }) {
+function UserForm({
+    onSuccess,
+    editingUser,
+    clearEdit
+}) {
 
 
-    const [name, setName] = useState("");
+    const [form, setForm] = useState({
 
-    const [email, setEmail] = useState("");
+        name: "",
+        email: "",
+        password: "",
+        roleId: 2
 
-    const [password, setPassword] = useState("");
-
-    const [roleId, setRoleId] = useState(1);
-
-
-
-    const submit = (e) => {
-
-        e.preventDefault();
+    });
 
 
-        onSave({
+    const [error, setError] = useState("");
 
-            name,
 
-            email,
 
-            password,
 
-            roleId: Number(roleId)
+
+    useEffect(() => {
+
+
+        if (editingUser) {
+
+
+            setForm({
+
+                name: editingUser.name,
+
+                email: editingUser.email,
+
+                password: "",
+
+                roleId: editingUser.roleId || 2
+
+            });
+
+
+        }
+        else {
+
+
+            setForm({
+
+                name: "",
+
+                email: "",
+
+                password: "",
+
+                roleId: 2
+
+            });
+
+
+        }
+
+
+    }, [editingUser]);
+
+
+
+
+
+
+
+    const handleChange = (e) => {
+
+
+        setForm({
+
+            ...form,
+
+            [e.target.name]: e.target.value
 
         });
+
 
     };
 
 
 
+
+
+
+
+    const handleSubmit = async (e) => {
+
+
+        e.preventDefault();
+
+
+        try {
+
+
+            setError("");
+
+
+
+            if (editingUser) {
+
+
+                await updateUser(
+                    editingUser.id,
+                    {
+
+                        name: form.name,
+
+                        email: form.email,
+
+                        roleId: Number(form.roleId)
+
+                    }
+                );
+
+
+            }
+            else {
+
+
+                await createUser({
+
+                    name: form.name,
+
+                    email: form.email,
+
+                    password: form.password,
+
+                    roleId: Number(form.roleId)
+
+                });
+
+
+            }
+
+
+
+
+
+            setForm({
+
+                name: "",
+
+                email: "",
+
+                password: "",
+
+                roleId: 2
+
+            });
+
+
+
+            if(clearEdit)
+                clearEdit();
+
+
+
+            onSuccess();
+
+
+
+        }
+
+
+        catch(err) {
+
+
+            console.error(
+                "User save error:",
+                err.response?.data || err.message
+            );
+
+
+            setError(
+                err.response?.data ||
+                "Failed to save user"
+            );
+
+
+        }
+
+
+    };
+
+
+
+
+
+
     return (
 
-        <div className="card shadow mb-4">
+        <div className="card mb-4 shadow">
 
 
             <div className="card-body">
 
 
                 <h5>
-                    Add User
+
+                    {
+                        editingUser
+                        ? "Edit User"
+                        : "Create User"
+                    }
+
                 </h5>
 
 
 
-                <form onSubmit={submit}>
 
+                {
+                    error &&
 
-                    <input
+                    <div className="alert alert-danger">
 
-                        className="form-control mb-3"
+                        {error}
 
-                        placeholder="Name"
+                    </div>
 
-                        value={name}
-
-                        onChange={(e)=>setName(e.target.value)}
-
-                        required
-
-                    />
+                }
 
 
 
-                    <input
-
-                        className="form-control mb-3"
-
-                        placeholder="Email"
-
-                        type="email"
-
-                        value={email}
-
-                        onChange={(e)=>setEmail(e.target.value)}
-
-                        required
-
-                    />
 
 
+                <form onSubmit={handleSubmit}>
 
-                    <input
 
-                        className="form-control mb-3"
+                    <div className="mb-2">
 
-                        placeholder="Password"
+                        <input
 
-                        type="password"
+                            className="form-control"
 
-                        value={password}
+                            name="name"
 
-                        onChange={(e)=>setPassword(e.target.value)}
+                            placeholder="Name"
 
-                        required
+                            value={form.name}
 
-                    />
+                            onChange={handleChange}
+
+                            required
+
+                        />
+
+                    </div>
 
 
 
-                    <select
-
-                        className="form-control mb-3"
-
-                        value={roleId}
-
-                        onChange={(e)=>setRoleId(e.target.value)}
-
-                    >
-
-                        <option value="1">
-                            Admin
-                        </option>
 
 
-                        <option value="2">
-                            Cashier
-                        </option>
+                    <div className="mb-2">
+
+                        <input
+
+                            className="form-control"
+
+                            name="email"
+
+                            placeholder="Email"
+
+                            type="email"
+
+                            value={form.email}
+
+                            onChange={handleChange}
+
+                            required
+
+                        />
+
+                    </div>
 
 
-                    </select>
 
 
 
-                    <button className="btn btn-success me-2">
+                    {
+                        !editingUser &&
 
-                        Save
+                        <div className="mb-2">
 
-                    </button>
+
+                            <input
+
+                                className="form-control"
+
+                                name="password"
+
+                                placeholder="Password"
+
+                                type="password"
+
+                                value={form.password}
+
+                                onChange={handleChange}
+
+                                required
+
+                            />
+
+
+                        </div>
+
+                    }
+
+
+
+
+
+                    <div className="mb-2">
+
+
+                        <select
+
+                            className="form-control"
+
+                            name="roleId"
+
+                            value={form.roleId}
+
+                            onChange={handleChange}
+
+                        >
+
+                            <option value={1}>
+                                Admin
+                            </option>
+
+
+                            <option value={2}>
+                                Cashier
+                            </option>
+
+
+                        </select>
+
+
+                    </div>
+
+
 
 
 
                     <button
-
-                        type="button"
-
-                        className="btn btn-secondary"
-
-                        onClick={onCancel}
-
+                        className="btn btn-primary"
                     >
 
-                        Cancel
+                        {
+                            editingUser
+                            ? "Update User"
+                            : "Create User"
+                        }
 
                     </button>
 
 
 
+
+                    {
+                        editingUser &&
+
+                        <button
+
+                            type="button"
+
+                            className="btn btn-secondary ms-2"
+
+                            onClick={clearEdit}
+
+                        >
+
+                            Cancel
+
+                        </button>
+
+                    }
+
+
+
                 </form>
+
 
 
             </div>
@@ -161,6 +401,7 @@ function UserForm({ onSave, onCancel }) {
         </div>
 
     );
+
 
 }
 

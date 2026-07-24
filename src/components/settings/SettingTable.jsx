@@ -1,5 +1,4 @@
-function SettingTable({ settings, onEdit, onDelete }) {
-
+function SettingTable({ settings, onEdit, onDelete, canManage }) {
 
     return (
 
@@ -53,33 +52,30 @@ function SettingTable({ settings, onEdit, onDelete }) {
 
                                     <td>
 
+                                        {
+                                            canManage && (
 
-                                        <button
+                                                <>
 
-                                            className="btn btn-warning btn-sm me-2"
-
-                                            onClick={() => onEdit(setting)}
-
-                                        >
-
-                                            Edit
-
-                                        </button>
-
+                                                <button
+                                                    className="btn btn-warning btn-sm me-2"
+                                                    onClick={() => onEdit(setting)}
+                                                >
+                                                    Edit
+                                                </button>
 
 
-                                        <button
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => onDelete(setting)}
+                                                >
+                                                    Delete
+                                                </button>
 
-                                            className="btn btn-danger btn-sm"
+                                                </>
 
-                                            onClick={() => onDelete(setting)}
-
-                                        >
-
-                                            Delete
-
-                                        </button>
-
+                                            )
+                                        }
 
                                     </td>
 

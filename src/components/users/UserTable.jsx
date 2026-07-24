@@ -1,4 +1,4 @@
-function UserTable({ users }) {
+function UserTable({ users, onEdit, onDelete, canEdit, canDelete }) {
 
 
     return (
@@ -19,6 +19,7 @@ function UserTable({ users }) {
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Actions</th>
 
                         </tr>
 
@@ -28,10 +29,12 @@ function UserTable({ users }) {
 
                     <tbody>
 
+
                         {
                             users.map(user => (
 
                                 <tr key={user.id}>
+
 
                                     <td>
                                         {user.id}
@@ -53,10 +56,46 @@ function UserTable({ users }) {
                                     </td>
 
 
+                                    <td>
+
+
+                                        {
+                                            canEdit && (
+
+                                                <button
+                                                    className="btn btn-sm btn-warning me-2"
+                                                    onClick={() => onEdit(user)}
+                                                >
+                                                    Edit
+                                                </button>
+
+                                            )
+                                        }
+
+
+
+                                        {
+                                            canDelete && (
+
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={() => onDelete(user.id)}
+                                                >
+                                                    Delete
+                                                </button>
+
+                                            )
+                                        }
+
+
+                                    </td>
+
+
                                 </tr>
 
                             ))
                         }
+
 
                     </tbody>
 

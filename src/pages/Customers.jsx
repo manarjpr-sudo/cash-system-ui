@@ -5,6 +5,8 @@ import CustomerForm from "../components/customers/CustomerForm";
 import CustomerTable from "../components/customers/CustomerTable";
 import DeleteCustomerModal from "../components/customers/DeleteCustomerModal";
 
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 function Customers() {
 
@@ -20,6 +22,7 @@ function Customers() {
 
     const [deleteCustomer, setDeleteCustomer] = useState(null);
 
+    const { hasPermission } = useContext(AuthContext);
 
 
     useEffect(() => {
@@ -194,18 +197,22 @@ function Customers() {
 
 
 
-                <button
-                    className="btn btn-primary"
-                    onClick={() => {
+                {
+                    hasPermission("Create_Customer") && (
 
-                        setSelectedCustomer(null);
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setSelectedCustomer(null);
+                                setShowForm(true);
+                            }}
+                        >
+                            Add Customer
+                        </button>
 
-                        setShowForm(true);
+                    )
+                }
 
-                    }}
-                >
-                    Add Customer
-                </button>
 
 
             </div>
@@ -259,13 +266,11 @@ function Customers() {
 
 
             <CustomerTable
-
                 customers={customers}
-
                 onEdit={handleEdit}
-
                 onDelete={(customer)=>setDeleteCustomer(customer)}
-
+                canEdit={hasPermission("Edit_Customer")}
+                canDelete={hasPermission("Delete_Customer")}
             />
 
 

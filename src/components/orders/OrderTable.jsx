@@ -1,4 +1,11 @@
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
+
+
 function OrderTable({ orders, onApprove, onReject }) {
+
+
+    const { hasPermission } = useContext(AuthContext);
 
 
     return (
@@ -7,14 +14,10 @@ function OrderTable({ orders, onApprove, onReject }) {
 
             <div className="card-body">
 
-
                 <table className="table table-striped">
 
-
                     <thead>
-
                         <tr>
-
                             <th>ID</th>
                             <th>Type</th>
                             <th>Status</th>
@@ -23,103 +26,84 @@ function OrderTable({ orders, onApprove, onReject }) {
                             <th>User</th>
                             <th>Customer</th>
                             <th>Actions</th>
-
                         </tr>
-
                     </thead>
-
 
 
                     <tbody>
 
-                        {
-                            orders.map(order => (
+                    {
+                        orders.map(order => (
 
-                                <tr key={order.id}>
+                            <tr key={order.id}>
 
+                                <td>{order.id}</td>
 
-                                    <td>
-                                        {order.id}
-                                    </td>
+                                <td>{order.type}</td>
 
+                                <td>{order.status}</td>
 
-                                    <td>
-                                        {order.type}
-                                    </td>
+                                <td>{order.amount}</td>
 
+                                <td>{order.description}</td>
 
-                                    <td>
-                                        {order.status}
-                                    </td>
+                                <td>{order.userName}</td>
 
-
-                                    <td>
-                                        {order.amount}
-                                    </td>
+                                <td>{order.customerName || "-"}</td>
 
 
-                                    <td>
-                                        {order.description}
-                                    </td>
+                                <td>
 
+                                {
+                                    order.status === "Pending" && (
 
-                                    <td>
-                                        {order.userName}
-                                    </td>
-
-
-                                    <td>
-                                        {order.customerName || "-"}
-                                    </td>
-
-
-
-                                    <td>
-
+                                        <>
 
                                         {
-                                            order.status === "Pending" && (
+                                            hasPermission("Approve_Order") && (
 
-                                                <>
-
-                                                    <button
-                                                        className="btn btn-success btn-sm me-2"
-                                                        onClick={() => onApprove(order.id)}
-                                                    >
-                                                        Approve
-                                                    </button>
-
-
-                                                    <button
-                                                        className="btn btn-danger btn-sm"
-                                                        onClick={() => onReject(order.id)}
-                                                    >
-                                                        Reject
-                                                    </button>
-
-                                                </>
+                                                <button
+                                                    className="btn btn-success btn-sm me-2"
+                                                    onClick={() => onApprove(order.id)}
+                                                >
+                                                    Approve
+                                                </button>
 
                                             )
                                         }
 
 
-                                    </td>
+                                        {
+                                            hasPermission("Reject_Order") && (
+
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => onReject(order.id)}
+                                                >
+                                                    Reject
+                                                </button>
+
+                                            )
+                                        }
+
+                                        </>
+
+                                    )
+                                }
 
 
-                                </tr>
+                                </td>
 
-                            ))
-                        }
+                            </tr>
 
+                        ))
+                    }
 
                     </tbody>
 
-
                 </table>
 
-
             </div>
-
 
         </div>
 

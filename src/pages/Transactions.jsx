@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 import TransactionTable from "../components/transactions/TransactionTable";
 
@@ -10,6 +12,25 @@ function Transactions() {
     const [transactions, setTransactions] = useState([]);
 
     const [loading, setLoading] = useState(true);
+
+    const { hasPermission } = useContext(AuthContext);
+
+
+    if (!hasPermission("View_Transactions")) {
+
+        return (
+
+            <div className="container mt-4">
+
+                <div className="alert alert-danger">
+                    You do not have permission to view transactions.
+                </div>
+
+            </div>
+
+        );
+
+    }
 
 
 

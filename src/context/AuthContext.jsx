@@ -8,8 +8,11 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
 
 
+    const storedUser = localStorage.getItem("user");
+
+
     const [user, setUser] = useState(
-        JSON.parse(localStorage.getItem("user")) || null
+        storedUser ? JSON.parse(storedUser) : null
     );
 
 
@@ -21,6 +24,9 @@ export function AuthProvider({ children }) {
 
 
 
+
+
+
     const login = (data) => {
 
 
@@ -28,7 +34,7 @@ export function AuthProvider({ children }) {
 
             ...data.user,
 
-            permissions: data.user.permissions || []
+            permissions: data.user?.permissions || []
 
         };
 
@@ -52,7 +58,9 @@ export function AuthProvider({ children }) {
 
         setUser(userData);
 
+
     };
+
 
 
 
@@ -71,7 +79,11 @@ export function AuthProvider({ children }) {
 
         setUser(null);
 
+
     };
+
+
+
 
 
 
@@ -80,11 +92,13 @@ export function AuthProvider({ children }) {
 
     const hasPermission = (permission) => {
 
-        if (!user || !user.permissions)
-            return false;
 
+        return (
 
-        return user.permissions.includes(permission);
+            user?.permissions?.includes(permission)
+
+        );
+
 
     };
 
@@ -95,6 +109,7 @@ export function AuthProvider({ children }) {
 
 
     return (
+
 
         <AuthContext.Provider
 
@@ -116,9 +131,12 @@ export function AuthProvider({ children }) {
 
         >
 
+
             {children}
 
+
         </AuthContext.Provider>
+
 
     );
 

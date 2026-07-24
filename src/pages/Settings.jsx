@@ -4,6 +4,8 @@ import api from "../api/axios";
 import SettingTable from "../components/settings/SettingTable";
 import SettingForm from "../components/settings/SettingForm";
 
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 function Settings() {
 
@@ -16,7 +18,7 @@ function Settings() {
 
     const [selectedSetting, setSelectedSetting] = useState(null);
 
-
+    const { hasPermission } = useContext(AuthContext);
 
     useEffect(() => {
 
@@ -196,23 +198,21 @@ function Settings() {
 
 
 
-                <button
+                {
+                    hasPermission("Manage_Settings") && (
 
-                    className="btn btn-primary"
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setSelectedSetting(null);
+                                setShowForm(true);
+                            }}
+                        >
+                            Add Setting
+                        </button>
 
-                    onClick={() => {
-
-                        setSelectedSetting(null);
-
-                        setShowForm(true);
-
-                    }}
-
-                >
-
-                    Add Setting
-
-                </button>
+                    )
+                }
 
 
             </div>
@@ -253,14 +253,13 @@ function Settings() {
                 settings={settings}
 
                 onEdit={(setting)=>{
-
                     setSelectedSetting(setting);
-
                     setShowForm(true);
-
                 }}
 
                 onDelete={deleteSetting}
+
+                canManage={hasPermission("Manage_Settings")}
 
             />
 

@@ -10,8 +10,17 @@ function Sidebar() {
 
 
 
+    const linkClass = ({ isActive }) =>
+
+        `nav-link text-white ${
+            isActive ? "bg-secondary rounded" : ""
+        }`;
+
+
+
 
     return (
+
 
         <div
 
@@ -25,6 +34,7 @@ function Sidebar() {
         >
 
 
+
             <h4 className="mb-4">
                 Cash System
             </h4>
@@ -33,7 +43,7 @@ function Sidebar() {
 
 
 
-            <div className="nav flex-column">
+            <div className="nav flex-column gap-1">
 
 
 
@@ -43,7 +53,7 @@ function Sidebar() {
 
                     to="/dashboard"
 
-                    className="nav-link text-white"
+                    className={linkClass}
 
                 >
 
@@ -57,36 +67,13 @@ function Sidebar() {
 
 
                 {
-                    hasPermission("View_Dashboard") && (
-
-                        <NavLink
-
-                            to="/dashboard"
-
-                            className="nav-link text-white"
-
-                        >
-
-                            Dashboard
-
-                        </NavLink>
-
-                    )
-                }
-
-
-
-
-
-
-                {
                     hasPermission("View_Customers") && (
 
                         <NavLink
 
                             to="/customers"
 
-                            className="nav-link text-white"
+                            className={linkClass}
 
                         >
 
@@ -102,6 +89,31 @@ function Sidebar() {
 
 
 
+
+                {
+                    hasPermission("View_Orders") && (
+
+                        <NavLink
+
+                            to="/orders"
+
+                            className={linkClass}
+
+                        >
+
+                            Orders
+
+                        </NavLink>
+
+                    )
+                }
+
+
+
+
+
+
+
                 {
                     hasPermission("View_Transactions") && (
 
@@ -109,7 +121,7 @@ function Sidebar() {
 
                             to="/transactions"
 
-                            className="nav-link text-white"
+                            className={linkClass}
 
                         >
 
@@ -133,7 +145,7 @@ function Sidebar() {
 
                             to="/users"
 
-                            className="nav-link text-white"
+                            className={linkClass}
 
                         >
 
@@ -149,6 +161,7 @@ function Sidebar() {
 
 
 
+
                 {
                     hasPermission("Manage_Settings") && (
 
@@ -156,7 +169,7 @@ function Sidebar() {
 
                             to="/settings"
 
-                            className="nav-link text-white"
+                            className={linkClass}
 
                         >
 
@@ -180,7 +193,7 @@ function Sidebar() {
 
                             to="/auditlogs"
 
-                            className="nav-link text-white"
+                            className={linkClass}
 
                         >
 
@@ -194,10 +207,12 @@ function Sidebar() {
 
 
 
+
             </div>
 
 
         </div>
+
 
     );
 

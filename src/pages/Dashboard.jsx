@@ -5,9 +5,11 @@ import { AuthContext } from "../context/AuthContext";
 
 function Dashboard() {
 
+
     const [data, setData] = useState(null);
 
-    const { user } = useContext(AuthContext);
+
+    const { hasPermission } = useContext(AuthContext);
 
 
 
@@ -47,17 +49,17 @@ function Dashboard() {
     if (!data)
     {
         return (
+
             <div className="container mt-4">
+
                 Loading...
+
             </div>
+
         );
     }
 
 
-
-
-
-    const isAdmin = data.role === "Admin";
 
 
 
@@ -71,6 +73,8 @@ function Dashboard() {
             <h2 className="mb-4">
                 Dashboard
             </h2>
+
+
 
 
 
@@ -98,8 +102,9 @@ function Dashboard() {
 
 
 
+
                 {
-                    isAdmin && (
+                    hasPermission("View_Users") && (
 
                         <div className="col-md-3">
 
@@ -148,6 +153,7 @@ function Dashboard() {
 
 
 
+
                 <div className="col-md-3">
 
                     <div className="card shadow border-0 p-3">
@@ -168,6 +174,7 @@ function Dashboard() {
 
 
             </div>
+
 
 
 
@@ -200,6 +207,8 @@ function Dashboard() {
 
 
 
+
+
                 <div className="col-md-4">
 
                     <div className="card shadow border-success p-3">
@@ -215,6 +224,8 @@ function Dashboard() {
                     </div>
 
                 </div>
+
+
 
 
 
@@ -246,7 +257,9 @@ function Dashboard() {
 
 
 
+
             <hr className="my-4"/>
+
 
 
 
@@ -255,6 +268,7 @@ function Dashboard() {
             <h4>
                 Latest Transactions
             </h4>
+
 
 
 
@@ -284,11 +298,11 @@ function Dashboard() {
                             Date
                         </th>
 
-
                     </tr>
 
-
                 </thead>
+
+
 
 
 
@@ -297,42 +311,43 @@ function Dashboard() {
                 <tbody>
 
 
-                {
-                    data.latestTransactions.map(t => (
+                    {
+                        data.latestTransactions.map(t => (
 
-                        <tr key={t.id}>
-
-
-                            <td>
-                                {t.type}
-                            </td>
+                            <tr key={t.id}>
 
 
-
-                            <td>
-                                {t.amount}
-                            </td>
+                                <td>
+                                    {t.type}
+                                </td>
 
 
 
-                            <td>
-                                {t.description}
-                            </td>
+                                <td>
+                                    {t.amount}
+                                </td>
 
 
 
-                            <td>
-                                {new Date(t.createdAt)
-                                    .toLocaleString()
-                                }
-                            </td>
+                                <td>
+                                    {t.description}
+                                </td>
 
 
 
-                        </tr>
+                                <td>
+                                    {
+                                        new Date(t.createdAt)
+                                            .toLocaleString()
+                                    }
+                                </td>
 
-                    ))
-                }
+
+
+                            </tr>
+
+                        ))
+                    }
 
 
                 </tbody>

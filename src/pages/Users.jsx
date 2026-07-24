@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import api from "../api/axios";
-
+import { useEffect, useState, useContext } from "react";
+import { getUsers, deleteUser } from "../services/userService";
 import UserTable from "../components/users/UserTable";
 import UserForm from "../components/users/UserForm";
+import { AuthContext } from "../context/AuthContext";
 
 
 function Users() {
@@ -10,9 +10,20 @@ function Users() {
 
     const [users, setUsers] = useState([]);
 
-    const [loading, setLoading] = useState(true);
+    const [editingUser, setEditingUser] = useState(null);
 
-    const [showForm, setShowForm] = useState(false);
+
+    const { hasPermission } = useContext(AuthContext);
+
+
+
+    const loadUsers = async () => {
+
+        const response = await getUsers();
+
+        setUsers(response.data);
+
+    };
 
 
 
@@ -23,95 +34,28 @@ function Users() {
     }, []);
 
 
-
-
-    const loadUsers = async () => {
+    const handleDelete = async (id) => {
 
         try {
 
-            const response = await api.get("/users");
+            await deleteUser(id);
 
-            setUsers(response.data);
-
-
-        } catch(error) {
-
-            console.log(error);
-
-            alert("Failed to load users");
-
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    };
-
-
-
-
-
-    const createUser = async (user) => {
-
-        try {
-
-
-            await api.post(
-                "/users",
-                user
-            );
-
-
-            alert("User created successfully");
-
-
-            setShowForm(false);
-
+            alert("User deleted successfully");
 
             loadUsers();
 
-
-
         } catch(error) {
-
 
             console.log(error);
 
-
             alert(
                 error.response?.data ||
-                "Failed to create user"
+                "Failed to delete user"
             );
-
 
         }
 
     };
-
-
-
-
-
-    if (loading) {
-
-        return (
-
-            <div className="container mt-4">
-
-                <h4>
-                    Loading...
-                </h4>
-
-            </div>
-
-        );
-
-    }
-
-
-
 
 
     return (
@@ -119,45 +63,20 @@ function Users() {
         <div className="container mt-4">
 
 
-
-            <div className="d-flex justify-content-between align-items-center mb-4">
-
-
-                <h2>
-                    Users
-                </h2>
-
-
-
-                <button
-
-                    className="btn btn-primary"
-
-                    onClick={() => setShowForm(true)}
-
-                >
-
-                    Add User
-
-                </button>
-
-
-
-            </div>
-
+            <h2>
+                Users Management
+            </h2>
 
 
 
 
             {
-                showForm && (
+                (hasPermission("Create_User") || editingUser) && (
 
                     <UserForm
-
-                        onSave={createUser}
-
-                        onCancel={() => setShowForm(false)}
-
+                        onSuccess={loadUsers}
+                        editingUser={editingUser}
+                        clearEdit={() => setEditingUser(null)}
                     />
 
                 )
@@ -170,6 +89,14 @@ function Users() {
             <UserTable
 
                 users={users}
+
+                onEdit={setEditingUser}
+
+                onDelete={handleDelete}
+
+                canEdit={hasPermission("Edit_User")}
+
+                canDelete={hasPermission("Delete_User")}
 
             />
 
