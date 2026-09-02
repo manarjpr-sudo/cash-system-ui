@@ -1,0 +1,482 @@
+/* ============================================================
+   المتغيرات العامة
+   ============================================================ */
+:root {
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-success: #22c55e;
+    --color-danger: #ef4444;
+    --color-warning: #f59e0b;
+    --color-text-dark: #0f172a;
+    --color-text-muted: #64748b;
+    --color-border: #e9edf2;
+    --color-bg-light: #f4f6f9;
+    --color-bg-white: #ffffff;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+    --radius-card: 16px;
+    --radius-btn: 10px;
+}
+
+/* ============================================================
+   الأساسيات
+   ============================================================ */
+body {
+    background: var(--color-bg-light);
+    font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+    color: var(--color-text-dark);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   التمرير
+   ============================================================ */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ============================================================
+   البطاقات (Cards)
+   ============================================================ */
+.stat-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e9edf2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease-in-out;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+}
+
+.stat-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    border-color: transparent;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+.stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.stat-icon-blue { background: #dbeafe; color: #2563eb; }
+.stat-icon-green { background: #dcfce7; color: #16a34a; }
+.stat-icon-yellow { background: #fef3c7; color: #d97706; }
+.stat-icon-purple { background: #e0e7ff; color: #4f46e5; }
+
+/* ============================================================
+   البطاقات المالية
+   ============================================================ */
+.financial-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e9edf2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 24px 20px;
+    transition: all 0.2s ease-in-out;
+}
+
+.financial-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    border-color: transparent;
+}
+
+.financial-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 500;
+}
+
+.financial-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 6px 0;
+}
+
+.financial-description {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.financial-card-income { border-left: 4px solid #22c55e; }
+.financial-card-expense { border-left: 4px solid #ef4444; }
+.financial-card-net { border-left: 4px solid #2563eb; }
+
+/* ============================================================
+   الجداول (Tables) - الحل النهائي
+   ============================================================ */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-white);
+}
+
+.system-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e9edf2;
+}
+
+.system-table thead th {
+    background: #f8fafc;
+    padding: 14px 20px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    border-bottom: 2px solid #e9edf2;
+    text-align: center;
+}
+
+.system-table tbody td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e9edf2;
+    color: #0f172a;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.system-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.system-table tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+.system-table tbody tr:hover {
+    background: #f1f5f9 !important;
+    cursor: pointer;
+}
+
+/* ============================================================
+   شريط الأدوات
+   ============================================================ */
+.management-toolbar {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e9edf2;
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================================
+   الأزرار
+   ============================================================ */
+.btn {
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-success {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+}
+
+.btn-success:hover {
+    background: #16a34a;
+    border-color: #16a34a;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+}
+
+.btn-danger {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 11px;
+}
+
+.btn-link {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* ============================================================
+   المودالات
+   ============================================================ */
+.system-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1060;
+    padding: 20px;
+}
+
+.system-modal {
+    background: #ffffff;
+    max-width: 540px;
+    width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+
+.system-modal-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #e9edf2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.system-modal-header h3 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #94a3b8;
+}
+
+.system-modal-body {
+    padding: 24px;
+}
+
+.system-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e9edf2;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #fafbfc;
+}
+
+.modal-button-secondary {
+    background: #f1f5f9;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.modal-button-secondary:hover {
+    background: #e2e8f0;
+}
+
+/* ============================================================
+   الحالات (Badges)
+   ============================================================ */
+.badge {
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+}
+
+.bg-success {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+}
+
+.bg-danger {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+.bg-warning {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+}
+
+.bg-opacity-10 {
+    opacity: 0.8;
+}
+
+.text-success {
+    color: #16a34a !important;
+}
+
+.text-danger {
+    color: #dc2626 !important;
+}
+
+.text-warning {
+    color: #d97706 !important;
+}
+
+
+/* ============================================================
+   التبويبات (Tabs) - تصميم Pills احترافي
+   ============================================================ */
+.btn-outline-secondary {
+    color: #64748b;
+    border: 1px solid #e9edf2;
+    background: transparent;
+}
+
+.btn-outline-secondary:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-primary.shadow-sm {
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+/* ============================================================
+   المسافات العامة بين الأقسام
+   ============================================================ */
+.section-spacing {
+    margin-bottom: 32px;
+}
+
+.section-spacing-lg {
+    margin-bottom: 48px;
+}
+
+.section-spacing-sm {
+    margin-bottom: 16px;
+}
+
+
+/* ============================================================
+   استجابة (Responsive)
+   ============================================================ */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 22px;
+    }
+    .financial-value {
+        font-size: 24px;
+    }
+    .stat-card {
+        padding: 16px !important;
+        min-height: 120px;
+    }
+    .system-table {
+        font-size: 13px;
+    }
+    .system-table thead th,
+    .system-table tbody td {
+        padding: 10px 14px;
+    }
+    .management-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* ============================================================
+   المسافات العامة بين الأقسام
+   ============================================================ */
+.dashboard-page .section-spacing {
+    margin-bottom: 32px;
+}
+
+.dashboard-page .section-spacing-lg {
+    margin-bottom: 48px;
+}
+
+.dashboard-page .section-spacing-sm {
+    margin-bottom: 16px;
+}
