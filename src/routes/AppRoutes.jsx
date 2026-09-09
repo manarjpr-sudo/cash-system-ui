@@ -25,17 +25,32 @@ function AppRoutes() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* الصفحات المحمية (تتطلب تسجيل الدخول) */}
+            {/* الصفحات المحمية */}
             <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/operations" element={<Operations />} />
-                    <Route path="/admin" element={<AdminCenter />} />
-                    <Route path="/system" element={<System />} />
+
+                    <Route
+                        path="/admin"
+                        element={
+                            <PermissionRoute requiredPermission="manage_users">
+                                <AdminCenter />
+                            </PermissionRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/system"
+                        element={
+                            <PermissionRoute requiredPermission="manage_settings">
+                                <System />
+                            </PermissionRoute>
+                        }
+                    />
                 </Route>
             </Route>
 
-            {/* أي مسار غير معروف → يذهب إلى Dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     );

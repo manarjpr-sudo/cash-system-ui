@@ -1,45 +1,41 @@
 import { useSettings } from "../../context/SettingsContext";
-import { useState, useEffect } from "react";
+import { useLanguage } from "../../context/LanguageContext";
+import { CURRENCIES } from "../../constants/currencies";
 
-function FormatDate({ value }) {
+function FormatAmount({ value, showCurrency = true }) {
     const { settings } = useSettings();
-    const [forceUpdate, setForceUpdate] = useState(0);
+    const { language } = useLanguage();
 
-    // فرض إعادة التصيير عند تغيير date_format
-    useEffect(() => {
-        setForceUpdate(prev => prev + 1);
-    }, [settings.date_format]);
+    // تحويل القيمة إلى رقم
+    let num = parseFloat(value);
+    if (isNaN(num)) num = 0;
+    const amount = num;
 
-    if (!value) return <span>-</span>;
+    // البحث عن العملة المختارة في القائمة
+    const found = CURRENCIES.find(c => c.code === settings.currency);
+    
+    // تحديد الرمز حسب اللغة الحالية
+    const symbol = found
+        ? (language === 'ar' ? found.symbol_ar : found.symbol_en)
+        : (language === 'ar' ? 'ر.س' : 'SAR');
 
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return <span>{value}</span>;
+    // التحقق من إظهار الرمز
+    const shouldShowCurrency = showCurrency && settings.show_currency_symbol !== false;
 
-    const format = settings.date_format || 'YYYY-MM-DD';
+    // تنسيق الرقم
+    const formattedNumber = amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-
-    let formatted = '';
-    switch (format) {
-        case 'YYYY-MM-DD':
-            formatted = `${year}-${month}-${day}`;
-            break;
-        case 'DD/MM/YYYY':
-            formatted = `${day}/${month}/${year}`;
-            break;
-        case 'MM/DD/YYYY':
-            formatted = `${month}/${day}/${year}`;
-            break;
-        case 'DD-MM-YYYY':
-            formatted = `${day}-${month}-${year}`;
-            break;
-        default:
-            formatted = `${year}-${month}-${day}`;
-    }
-
-    return <span key={forceUpdate}>{formatted}</span>;
+    return (
+        <span className="fw-bold" key={`${settings.currency}-${language}`}>
+            {shouldShowCurrency
+                ? `${formattedNumber} ${symbol}`  // ✅ رمز العملة بعد الرقم
+                : formattedNumber
+            }
+        </span>
+    );
 }
 
-export default FormatDate;
+export default FormatAmount;

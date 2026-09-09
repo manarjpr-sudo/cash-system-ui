@@ -1,17 +1,28 @@
-# React + Vite
+# نظام إدارة النقد (Cash Management System)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+نظام ويب لإدارة العمليات المالية (دخل/خرج)، العملاء، المستخدمين، الصلاحيات، مع لوحة تحكم وتقارير.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## المتطلبات التقنية
 
-## React Compiler
+- **Node.js** >= 18  
+- **PHP** >= 8.2  
+- **Composer**  
+- **MySQL**  
+- **Laravel** 12 (للباكند)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## تشغيل المشروع محلياً
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-"# cash-system-ui" 
+### 1. تشغيل الباكند (Laravel)
+
+```bash
+cd cash-system-backend
+composer install
+cp .env.example .env
+# عدل ملف .env (اسم قاعدة البيانات، المستخدم، كلمة المرور)
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve

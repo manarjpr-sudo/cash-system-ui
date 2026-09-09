@@ -18,7 +18,6 @@ export const CURRENCIES = [
     { code: 'GEL', name_ar: 'لاري جورجي', name_en: 'Georgian Lari', symbol_ar: '₾', symbol_en: 'GEL' },
     { code: 'HUF', name_ar: 'فورنت مجري', name_en: 'Hungarian Forint', symbol_ar: 'Ft', symbol_en: 'HUF' },
     { code: 'IDR', name_ar: 'روبية إندونيسية', name_en: 'Indonesian Rupiah', symbol_ar: 'Rp', symbol_en: 'IDR' },
-    { code: 'ILS', name_ar: 'شيكل إسرائيلي', name_en: 'Israeli Shekel', symbol_ar: '₪', symbol_en: 'ILS' },
     { code: 'INR', name_ar: 'روبية هندية', name_en: 'Indian Rupee', symbol_ar: '₹', symbol_en: 'INR' },
     { code: 'IQD', name_ar: 'دينار عراقي', name_en: 'Iraqi Dinar', symbol_ar: 'د.ع', symbol_en: 'IQD' },
     { code: 'IRR', name_ar: 'ريال إيراني', name_en: 'Iranian Rial', symbol_ar: '﷼', symbol_en: 'IRR' },

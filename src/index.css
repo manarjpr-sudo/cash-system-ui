@@ -993,3 +993,75 @@ body {
 .dark .navbar.sticky-top {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
+
+/* ============================================================
+   ضبط التذييل في الأسفل
+   ============================================================ */
+
+/* تأكد من أن العمود الرئيسي يأخذ كامل ارتفاع الشاشة */
+.d-flex.flex-column.flex-grow-1 {
+    min-height: 100vh !important;
+}
+
+/* اجعل المحتوى يتمدد لملء المساحة */
+main.flex-grow-1 {
+    flex: 1 1 auto !important;
+}
+
+/* التذييل لا ينكمش ويبقى في الأسفل */
+footer {
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    margin-top: auto !important;
+}
+
+/* ============================================================
+   إصلاح لون النص في حقول الإدخال (تسجيل الدخول - الوضع المظلم)
+   ============================================================ */
+
+.dark .auth-field input,
+.dark .auth-field input:focus {
+    color: #0f172a !important; /* لون غامق للتباين */
+    background: #ffffff !important; /* خلفية بيضاء للحقل */
+}
+
+.dark .auth-field input::placeholder {
+    color: #94a3b8 !important; /* لون placeholder رمادي */
+}
+
+/* إذا أردت فقط تغيير لون النص دون تغيير الخلفية */
+.dark .auth-field input {
+    color: #898b8f !important; /* رمادي فاتح مقروء */
+}
+
+/* ============================================================
+   إصلاح ظهور Tooltip الرسوم البيانية في الوضع المظلم
+   ============================================================ */
+
+.dark .recharts-default-tooltip {
+    background: #1e293b !important;   /* خلفية داكنة */
+    border-color: #334155 !important;  /* حدود خفيفة */
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .recharts-tooltip-label {
+    color: #f1f5f9 !important;         /* لون النص الأساسي أبيض فاتح */
+}
+
+.dark .recharts-tooltip-item {
+    color: #f1f5f9 !important;         /* لون كل عنصر أبيض فاتح */
+}
+
+.dark .recharts-tooltip-item-list {
+    color: #f1f5f9 !important;
+}
+
+/* إذا أردت تغيير لون الخلفية لكل عنصر على حدة (اختياري) */
+.dark .recharts-tooltip-item-name {
+    color: #94a3b8 !important;
+}
+
+.dark .recharts-tooltip-item-value {
+    color: #f1f5f9 !important;
+}

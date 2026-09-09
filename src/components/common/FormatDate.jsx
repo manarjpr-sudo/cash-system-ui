@@ -1,73 +1,35 @@
 import { useSettings } from "../../context/SettingsContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { useState, useEffect } from "react";
+import { CURRENCIES } from "../../constants/currencies";
 
-function FormatDate({ value, showTime = true }) {
+function FormatAmount({ value, showCurrency = true }) {
     const { settings } = useSettings();
     const { language } = useLanguage();
-    const [forceUpdate, setForceUpdate] = useState(0);
 
-    // فرض إعادة التصيير عند تغيير تنسيق التاريخ
-    useEffect(() => {
-        setForceUpdate(prev => prev + 1);
-    }, [settings.date_format]);
+    let num = parseFloat(value);
+    if (isNaN(num)) num = 0;
+    const amount = num;
 
-    if (!value) return <span>-</span>;
+    const found = CURRENCIES.find(c => c.code === settings.currency);
+    const defaultCurrency = CURRENCIES.find(c => c.code === 'USD');
+    const currency = found || defaultCurrency;
 
-    const date = new Date(value);
-    if (isNaN(date.getTime())) return <span>{value}</span>;
+    const symbol = language === 'ar' ? currency.symbol_ar : currency.symbol_en;
+    const shouldShowCurrency = showCurrency && settings.show_currency_symbol !== false;
 
-    // ============================================================
-    // 1. تنسيق التاريخ حسب الإعدادات
-    // ============================================================
-    const format = settings.date_format || 'YYYY-MM-DD';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const formattedNumber = amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 
-    let dateStr = '';
-    switch (format) {
-        case 'YYYY-MM-DD':
-            dateStr = `${year}-${month}-${day}`;
-            break;
-        case 'DD/MM/YYYY':
-            dateStr = `${day}/${month}/${year}`;
-            break;
-        case 'MM/DD/YYYY':
-            dateStr = `${month}/${day}/${year}`;
-            break;
-        case 'DD-MM-YYYY':
-            dateStr = `${day}-${month}-${year}`;
-            break;
-        default:
-            dateStr = `${year}-${month}-${day}`;
-    }
-
-    // ============================================================
-    // 2. تنسيق الوقت (12 ساعة مع صباحاً/مساءً أو AM/PM)
-    // ============================================================
-    let timeStr = '';
-    if (showTime) {
-        let hours = date.getHours();
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const hours12 = hours % 12 || 12; // 0 تصبح 12
-
-        // تحديد النص حسب اللغة
-        const ampmText = language === 'ar'
-            ? (ampm === 'AM' ? 'ص' : 'م')
-            : ampm;
-
-        // صيغة الوقت: 12:30 صباحاً / 12:30 PM
-        timeStr = `${hours12}:${minutes} ${ampmText}`;
-    }
-
-    // ============================================================
-    // 3. دمج التاريخ والوقت
-    // ============================================================
-    const formatted = showTime ? `${dateStr} ${timeStr}` : dateStr;
-
-    return <span key={forceUpdate}>{formatted}</span>;
+    return (
+        <span className="fw-bold">
+            {shouldShowCurrency
+                ? `${formattedNumber} ${symbol}`
+                : formattedNumber
+            }
+        </span>
+    );
 }
 
-export default FormatDate;
+export default FormatAmount;

@@ -405,7 +405,7 @@ const CustomersSimple = ({ onCustomerAdded }) => {
 // ============================================================
 function Operations() {
     const { language } = useLanguage();
-    const { hasPermission } = useContext(AuthContext);
+    const { user, hasPermission } = useContext(AuthContext); // ✅ إضافة user
     const { settings } = useSettings();
     const location = useLocation();
 
@@ -538,9 +538,9 @@ function Operations() {
             setPagination(response.data || null);
             // حساب الإحصائيات
             const totalIncome = ops.filter(op => op.type === 'receipt' && op.status === 'approved')
-                .reduce((sum, op) => sum + Number(op.amount), 0);
+                .reduce((sum, op) => sum + (parseFloat(op.amount) || 0), 0);
             const totalExpense = ops.filter(op => op.type === 'payment' && op.status === 'approved')
-                .reduce((sum, op) => sum + Number(op.amount), 0);
+                .reduce((sum, op) => sum + (parseFloat(op.amount) || 0), 0);
             const pending = ops.filter(op => op.status === 'pending').length;
             setStats({ totalIncome, totalExpense, netCash: totalIncome - totalExpense, pending });
             } catch (error) {
@@ -631,10 +631,16 @@ function Operations() {
         }
     };
 
-    const handleShowForm = () => {
-        loadCustomers();
-        setShowForm(true);
+    const handleShowForm = async () => {
+        try {
+            await loadCustomers();
+            setShowForm(true);
+        } catch (error) {
+            console.error("Error loading customers:", error);
+            toast.error(language === 'ar' ? 'فشل تحميل العملاء' : 'Failed to load customers');
+        }
     };
+
 
     if (loading && operations.length === 0 && activeTab === "operations") {
         return (
@@ -720,14 +726,24 @@ function Operations() {
                             <div className="col-md-3 col-sm-6">
                                 <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
                                     <div className="financial-label">{lang.income}</div>
-                                    <div className="financial-value fs-4"><FormatAmount value={stats.totalIncome} /></div>
+                                    <div className="financial-value fs-4">
+                                        <FormatAmount 
+                                            key={`income-${settings.currency}-${language}`} 
+                                            value={stats.totalIncome} 
+                                        />
+                                    </div>
                                     <div className="financial-description">{lang.receipt}</div>
                                 </div>
                             </div>
                             <div className="col-md-3 col-sm-6">
                                 <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
                                     <div className="financial-label">{lang.expense}</div>
-                                    <div className="financial-value fs-4"><FormatAmount value={stats.totalExpense} /></div>
+                                    <div className="financial-value fs-4">
+                                        <FormatAmount 
+                                            key={`expense-${settings.currency}-${language}`} 
+                                            value={stats.totalExpense} 
+                                        />
+                                    </div>
                                     <div className="financial-description">{lang.payment}</div>
                                 </div>
                             </div>
@@ -735,7 +751,10 @@ function Operations() {
                                 <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
                                     <div className="financial-label">{lang.net}</div>
                                     <div className="financial-value fs-4" style={{ color: stats.netCash >= 0 ? '#16a34a' : '#dc2626' }}>
-                                        <FormatAmount value={stats.netCash} />
+                                        <FormatAmount 
+                                            key={`net-${settings.currency}-${language}`} 
+                                            value={stats.netCash} 
+                                        />
                                     </div>
                                     <div className="financial-description">{lang.pendingCount}</div>
                                 </div>
@@ -1006,7 +1025,7 @@ function Operations() {
                                                         color: "#0f172a", 
                                                         marginTop: "4px",
                                                         padding: "12px 16px",
-                                                        background: "#f8fafc",
+                                                        background: "#f8afc",
                                                         borderRadius: "8px",
                                                         border: "1px solid #e9edf2",
                                                         minHeight: "50px"
@@ -1050,7 +1069,7 @@ function Operations() {
                                                     color: "#0f172a", 
                                                     marginTop: "4px",
                                                     padding: "12px 16px",
-                                                    background: "#f8fafc",
+                                                    background: "#f8afc",
                                                     borderRadius: "8px",
                                                     border: "1px solid #e9edf2",
                                                     minHeight: "50px"

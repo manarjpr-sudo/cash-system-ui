@@ -1,13 +1,22 @@
+import { useContext, useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import {
-    FaHome, FaClipboardList, FaUsersCog, FaCog,
-    FaChevronLeft, FaChevronRight
+import { 
+    FaHome,
+    FaClipboardList,
+    FaUsersCog, 
+    FaCog,
+    FaChevronLeft,
+    FaChevronRight
 } from "react-icons/fa";
 
 function Sidebar() {
     const { language } = useLanguage();
+    const { user } = useContext(AuthContext);
+    
+    // ✅ تأكد من أن المدير يرى كل الروابط
+    const isAdmin = user?.role?.name === 'Admin';
 
     const t = {
         ar: {
@@ -166,57 +175,63 @@ function Sidebar() {
                     </span>
                 </NavLink>
 
-                <NavLink
-                    to="/admin"
-                    title={isCollapsed ? lang.admin : ''}
-                    className={({ isActive }) =>
-                        `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
-                    }
-                    style={{
-                        padding: isCollapsed ? "10px 0" : "10px 14px",
-                        justifyContent: isCollapsed ? "center" : "flex-start",
-                        gap: isCollapsed ? "0" : "12px",
-                        fontSize: isCollapsed ? "0" : "14px",
-                        transition: "all 0.2s",
-                    }}
-                >
-                    <FaUsersCog size={20} />
-                    <span style={{
-                        opacity: isCollapsed ? 0 : 1,
-                        width: isCollapsed ? 0 : "auto",
-                        overflow: "hidden",
-                        transition: "opacity 0.2s, width 0.2s",
-                        whiteSpace: "nowrap",
-                    }}>
-                        {lang.admin}
-                    </span>
-                </NavLink>
+                {/* ✅ ADMIN: يظهر دائماً للمدير */}
+                {isAdmin && (
+                    <NavLink
+                        to="/admin"
+                        title={isCollapsed ? lang.admin : ''}
+                        className={({ isActive }) =>
+                            `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
+                        }
+                        style={{
+                            padding: isCollapsed ? "10px 0" : "10px 14px",
+                            justifyContent: isCollapsed ? "center" : "flex-start",
+                            gap: isCollapsed ? "0" : "12px",
+                            fontSize: isCollapsed ? "0" : "14px",
+                            transition: "all 0.2s",
+                        }}
+                    >
+                        <FaUsersCog size={20} />
+                        <span style={{
+                            opacity: isCollapsed ? 0 : 1,
+                            width: isCollapsed ? 0 : "auto",
+                            overflow: "hidden",
+                            transition: "opacity 0.2s, width 0.2s",
+                            whiteSpace: "nowrap",
+                        }}>
+                            {lang.admin}
+                        </span>
+                    </NavLink>
+                )}
 
-                <NavLink
-                    to="/system"
-                    title={isCollapsed ? lang.system : ''}
-                    className={({ isActive }) =>
-                        `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
-                    }
-                    style={{
-                        padding: isCollapsed ? "10px 0" : "10px 14px",
-                        justifyContent: isCollapsed ? "center" : "flex-start",
-                        gap: isCollapsed ? "0" : "12px",
-                        fontSize: isCollapsed ? "0" : "14px",
-                        transition: "all 0.2s",
-                    }}
-                >
-                    <FaCog size={20} />
-                    <span style={{
-                        opacity: isCollapsed ? 0 : 1,
-                        width: isCollapsed ? 0 : "auto",
-                        overflow: "hidden",
-                        transition: "opacity 0.2s, width 0.2s",
-                        whiteSpace: "nowrap",
-                    }}>
-                        {lang.system}
-                    </span>
-                </NavLink>
+                {/* ✅ SYSTEM: يظهر دائماً للمدير */}
+                {isAdmin && (
+                    <NavLink
+                        to="/system"
+                        title={isCollapsed ? lang.system : ''}
+                        className={({ isActive }) =>
+                            `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
+                        }
+                        style={{
+                            padding: isCollapsed ? "10px 0" : "10px 14px",
+                            justifyContent: isCollapsed ? "center" : "flex-start",
+                            gap: isCollapsed ? "0" : "12px",
+                            fontSize: isCollapsed ? "0" : "14px",
+                            transition: "all 0.2s",
+                        }}
+                    >
+                        <FaCog size={20} />
+                        <span style={{
+                            opacity: isCollapsed ? 0 : 1,
+                            width: isCollapsed ? 0 : "auto",
+                            overflow: "hidden",
+                            transition: "opacity 0.2s, width 0.2s",
+                            whiteSpace: "nowrap",
+                        }}>
+                            {lang.system}
+                        </span>
+                    </NavLink>
+                )}
             </nav>
         </div>
     );

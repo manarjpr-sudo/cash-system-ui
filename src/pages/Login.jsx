@@ -258,10 +258,7 @@ function Login() {
                     </div>
                 </section>
             </div>
-
-            <div className="auth-footer-note">
-                © {new Date().getFullYear()} Cash Management System
-            </div>
+            
         </div>
     );
 }

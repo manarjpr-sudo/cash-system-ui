@@ -1,23 +1,24 @@
 import { useContext } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
-function PermissionRoute({ permission, children }) {
+function PermissionRoute({ requiredPermission, children }) {
+    const { user, hasPermission } = useContext(AuthContext);
 
-    const { hasPermission } = useContext(AuthContext);
-
-    if (!hasPermission(permission)) {
-
-        return (
-            <Navigate
-                to="/access-denied"
-                replace
-            />
-        );
-
+    if (!user) {
+        return <Navigate to="/login" replace />;
     }
 
-    return children;
+    // ✅ السماح للمدير بكل شيء
+    if (user?.role?.name === 'Admin') {
+        return children || <Outlet />;
+    }
+
+    if (!hasPermission(requiredPermission)) {
+        return <Navigate to="/access-denied" replace />;
+    }
+
+    return children || <Outlet />;
 }
 
 export default PermissionRoute;
