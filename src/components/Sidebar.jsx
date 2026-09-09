@@ -1,16 +1,13 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { useContext, useState, useEffect } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import {
-    FaHome, FaClipboardList, FaUsersCog, FaCog, FaSignOutAlt,
+    FaHome, FaClipboardList, FaUsersCog, FaCog,
     FaChevronLeft, FaChevronRight
 } from "react-icons/fa";
 
 function Sidebar() {
-    const { user, logout } = useContext(AuthContext);
     const { language } = useLanguage();
-    const navigate = useNavigate();
 
     const t = {
         ar: {
@@ -18,7 +15,6 @@ function Sidebar() {
             operations: "العمليات",
             admin: "الإدارة",
             system: "النظام",
-            logout: "تسجيل الخروج",
             brand: "نظام إدارة النقد",
             brandSub: "إدارة مالية",
         },
@@ -27,7 +23,6 @@ function Sidebar() {
             operations: "Operations",
             admin: "Admin Center",
             system: "System",
-            logout: "Logout",
             brand: "Cash System",
             brandSub: "Financial Management",
         },
@@ -43,11 +38,6 @@ function Sidebar() {
     useEffect(() => {
         localStorage.setItem('sidebar-collapsed', isCollapsed);
     }, [isCollapsed]);
-
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
-    };
 
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);
@@ -228,53 +218,6 @@ function Sidebar() {
                     </span>
                 </NavLink>
             </nav>
-
-            {/* قسم المستخدم مع Tooltip لزر الخروج */}
-            <div className="mt-auto px-2 pb-3">
-                <hr className="mx-2" style={{ borderColor: "rgba(255,255,255,0.06)", opacity: 1 }} />
-                <div
-                    className="d-flex align-items-center gap-2 px-2 py-2"
-                    style={{
-                        cursor: "pointer",
-                        justifyContent: isCollapsed ? "center" : "flex-start",
-                    }}
-                >
-                    <div
-                        className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style={{ width: "32px", height: "32px", fontSize: "12px", fontWeight: "bold", flexShrink: 0 }}
-                    >
-                        {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                    </div>
-                    {!isCollapsed && (
-                        <div className="flex-grow-1" style={{ overflow: "hidden" }}>
-                            <div className="fw-semibold small" style={{ fontSize: "12px" }}>{user?.name || "User"}</div>
-                            <div className="small" style={{ color: "rgba(255,255,255,0.5)", fontSize: "10px" }}>{user?.role?.name || "No Role"}</div>
-                        </div>
-                    )}
-                </div>
-                <button
-                    onClick={handleLogout}
-                    title={isCollapsed ? lang.logout : ''}
-                    className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
-                    style={{
-                        borderRadius: "8px",
-                        padding: "6px 0",
-                        fontSize: isCollapsed ? "0" : "12px",
-                        transition: "all 0.2s",
-                    }}
-                >
-                    <FaSignOutAlt size={14} />
-                    <span style={{
-                        opacity: isCollapsed ? 0 : 1,
-                        width: isCollapsed ? 0 : "auto",
-                        overflow: "hidden",
-                        transition: "opacity 0.2s, width 0.2s",
-                        whiteSpace: "nowrap",
-                    }}>
-                        {lang.logout}
-                    </span>
-                </button>
-            </div>
         </div>
     );
 }

@@ -1,13 +1,17 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { AuthContext } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 import api from "../api/axios";
 import roleService from "../services/roleService";
 import { toast } from "react-toastify";
+import { debounce } from "lodash";
+
 
 function AdminCenter() {
     const { language } = useLanguage();
     const { hasPermission } = useContext(AuthContext);
+    const { settings } = useSettings();
     const [activeTab, setActiveTab] = useState("users");
 
     // ===== حالة المستخدمين =====
@@ -18,6 +22,7 @@ function AdminCenter() {
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
     const [roleId, setRoleId] = useState("all");
+    const [requestedRoleId, setRequestedRoleId] = useState("all");
     const [pagination, setPagination] = useState(null);
 
     const [selectedUser, setSelectedUser] = useState(null);
@@ -34,15 +39,19 @@ function AdminCenter() {
     const [editingRole, setEditingRole] = useState(null);
     const [roleForm, setRoleForm] = useState({ name: "", description: "", permissions: [] });
 
-    // ===== الترجمات =====
+    // ===== الترجمات (جميع النصوص) =====
     const text = useMemo(() => {
         const isAr = language === "ar";
         return {
+            // العناوين الرئيسية
             title: isAr ? "مركز الإدارة" : "Admin Center",
+            adminSubtitle: isAr ? "إدارة المستخدمين والأدوار والصلاحيات" : "Manage users, roles and permissions.",
             cancel: isAr ? "إلغاء" : "Cancel",
             save: isAr ? "حفظ" : "Save",
             loading: isAr ? "جارٍ التحميل..." : "Loading...",
             error: isAr ? "حدث خطأ" : "An error occurred",
+
+            // تبويب المستخدمين
             usersTab: isAr ? "المستخدمين" : "Users",
             usersSubtitle: isAr ? "إدارة طلبات التسجيل والحسابات والأدوار والحالات." : "Manage registration requests, accounts, roles and status.",
             all: isAr ? "الكل" : "All",
@@ -52,12 +61,13 @@ function AdminCenter() {
             rejected: isAr ? "مرفوض" : "Rejected",
             searchPlaceholder: isAr ? "البحث بالاسم أو البريد الإلكتروني" : "Search by name or email",
             role: isAr ? "الدور" : "Role",
-            statusLabel: isAr ? "الحالة" : "Status",
-            noUsers: isAr ? "لا توجد حسابات مطابقة." : "No matching users found.",
-            user: isAr ? "المستخدم" : "User",
-            email: isAr ? "البريد الإلكتروني" : "Email",
             requestedRole: isAr ? "الدور المطلوب" : "Requested Role",
             currentRole: isAr ? "الدور الحالي" : "Current Role",
+            statusLabel: isAr ? "الحالة" : "Status",
+            noUsers: isAr ? "لا توجد حسابات مطابقة." : "No matching users found.",
+            noResults: isAr ? "لا توجد نتائج تطابق معايير البحث." : "No results match your search criteria.",
+            user: isAr ? "المستخدم" : "User",
+            email: isAr ? "البريد الإلكتروني" : "Email",
             createdAt: isAr ? "تاريخ التسجيل" : "Registered",
             actions: isAr ? "الإجراءات" : "Actions",
             approve: isAr ? "موافقة" : "Approve",
@@ -80,6 +90,10 @@ function AdminCenter() {
             successActivate: isAr ? "تم تفعيل الحساب." : "User activated.",
             roleRequired: isAr ? "اختر الدور النهائي أولًا." : "Please select the final role.",
             reasonRequired: isAr ? "أدخل سبب الرفض." : "Please provide a rejection reason.",
+            // المفاتيح الجديدة
+            requestedSuffix: isAr ? " (مطلوب)" : " (requested)",
+
+            // تبويب الأدوار والصلاحيات
             rolesTab: isAr ? "الأدوار والصلاحيات" : "Roles & Permissions",
             rolesSubtitle: isAr ? "إنشاء وتعديل الأدوار ومنح الصلاحيات." : "Create, edit roles and assign permissions.",
             roleName: isAr ? "اسم الدور" : "Role Name",
@@ -93,27 +107,33 @@ function AdminCenter() {
             successCreateRole: isAr ? "تم إنشاء الدور بنجاح" : "Role created successfully",
             successUpdateRole: isAr ? "تم تحديث الدور بنجاح" : "Role updated successfully",
             successDeleteRole: isAr ? "تم حذف الدور بنجاح" : "Role deleted successfully",
+            // المفتاح الجديد لجدول الأدوار
+            idColumn: isAr ? "#" : "#",
         };
     }, [language]);
 
-    // ===== دوال المستخدمين =====
-    const loadUsers = async () => {
-        try {
-            setLoadingUsers(true);
-            const params = {};
-            if (search.trim()) params.search = search.trim();
-            if (status !== "all") params.status = status;
-            if (roleId !== "all") params.role_id = roleId;
-            const response = await api.get("/users", { params });
-            setUsers(response.data?.data || []);
-            setPagination(response.data || null);
-        } catch (err) {
-            console.error(err);
-            toast.error(err.response?.data?.message || "Unable to load users.");
-        } finally {
-            setLoadingUsers(false);
-        }
-    };
+    // ===== دوال المستخدمين مع debounce =====
+    const loadUsers = useCallback(
+        debounce(async (params) => {
+            try {
+                setLoadingUsers(true);
+                const response = await api.get("/users", { 
+                    params: {
+                        ...params,
+                        per_page: settings.items_per_page || 10, // ✅ استخدام الإعداد
+                    }
+                });
+                setUsers(response.data?.data || []);
+                setPagination(response.data || null);
+            } catch (err) {
+                console.error(err);
+                toast.error(err.response?.data?.message || "Unable to load users.");
+            } finally {
+                setLoadingUsers(false);
+            }
+        }, 300),
+        [settings.items_per_page]
+    );
 
     const loadRolesForFilter = async () => {
         try {
@@ -123,10 +143,16 @@ function AdminCenter() {
     };
 
     useEffect(() => { loadRolesForFilter(); }, []);
+
     useEffect(() => {
-        const timer = setTimeout(() => loadUsers(), 250);
-        return () => clearTimeout(timer);
-    }, [search, status, roleId]);
+        const params = {};
+        if (search.trim()) params.search = search.trim();
+        if (status !== "all") params.status = status;
+        if (roleId !== "all") params.role_id = roleId;
+        if (requestedRoleId !== "all") params.requested_role_id = requestedRoleId;
+        loadUsers(params);
+        return () => loadUsers.cancel();
+    }, [search, status, roleId, requestedRoleId]);
 
     const openApprove = (user) => {
         setSelectedUser(user);
@@ -144,7 +170,12 @@ function AdminCenter() {
             await api.post(`/users/${selectedUser.id}/approve`, { role_id: selectedRole });
             toast.success(text.successApprove);
             closeApprove();
-            loadUsers();
+            const params = {};
+            if (search.trim()) params.search = search.trim();
+            if (status !== "all") params.status = status;
+            if (roleId !== "all") params.role_id = roleId;
+            if (requestedRoleId !== "all") params.requested_role_id = requestedRoleId;
+            loadUsers(params);
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || "Unable to approve user.");
@@ -166,7 +197,12 @@ function AdminCenter() {
             await api.post(`/users/${rejectingUser.id}/reject`, { rejection_reason: rejectionReason.trim() });
             toast.success(text.successReject);
             closeReject();
-            loadUsers();
+            const params = {};
+            if (search.trim()) params.search = search.trim();
+            if (status !== "all") params.status = status;
+            if (roleId !== "all") params.role_id = roleId;
+            if (requestedRoleId !== "all") params.requested_role_id = requestedRoleId;
+            loadUsers(params);
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || "Unable to reject user.");
@@ -183,7 +219,12 @@ function AdminCenter() {
             await api.post(`/users/${deactivateConfirm.id}/deactivate`);
             toast.success(text.successDeactivate);
             setDeactivateConfirm(null);
-            loadUsers();
+            const params = {};
+            if (search.trim()) params.search = search.trim();
+            if (status !== "all") params.status = status;
+            if (roleId !== "all") params.role_id = roleId;
+            if (requestedRoleId !== "all") params.requested_role_id = requestedRoleId;
+            loadUsers(params);
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || "Unable to deactivate user.");
@@ -197,7 +238,12 @@ function AdminCenter() {
             setActionLoading(true);
             await api.post(`/users/${user.id}/activate`);
             toast.success(text.successActivate);
-            loadUsers();
+            const params = {};
+            if (search.trim()) params.search = search.trim();
+            if (status !== "all") params.status = status;
+            if (roleId !== "all") params.role_id = roleId;
+            if (requestedRoleId !== "all") params.requested_role_id = requestedRoleId;
+            loadUsers(params);
         } catch (err) {
             console.error(err);
             toast.error(err.response?.data?.message || "Unable to activate user.");
@@ -208,11 +254,15 @@ function AdminCenter() {
 
     const statusClass = (value) => `status-badge status-${value}`;
     const statusLabel = (value) => {
-        const labels = { pending: text.pending, active: text.active, inactive: text.inactive, rejected: text.rejected };
+        const labels = {
+            pending: text.pending,
+            active: text.active,
+            inactive: text.inactive,
+            rejected: text.rejected
+        };
         return labels[value] || value;
     };
 
-    // ===== دوال الأدوار =====
     const loadRolesData = async () => {
         try {
             setLoadingRoles(true);
@@ -289,22 +339,15 @@ function AdminCenter() {
         }));
     };
 
-    // ===== العرض =====
     return (
         <div className="dashboard-page" style={{ padding: "24px 32px" }}>
-            {/* ============================================================
-                العنوان الرئيسي
-            ============================================================ */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="h2 fw-bold mb-1" style={{ color: "#0f172a" }}>{text.title}</h1>
-                    <p className="text-muted" style={{ fontSize: "14px" }}>إدارة المستخدمين والأدوار والصلاحيات</p>
+                    <p className="text-muted" style={{ fontSize: "14px" }}>{text.adminSubtitle}</p>
                 </div>
             </div>
 
-            {/* ============================================================
-                التبويبات (Tabs) - نفس شكل المتصفح (Chrome)
-            ============================================================ */}
             <div className="d-flex gap-1 mb-4" style={{ borderBottom: "2px solid #e9edf2" }}>
                 <button
                     className={`btn btn-link text-decoration-none fw-semibold px-4 py-2 ${activeTab === "users" ? "text-primary bg-white" : "text-secondary"}`}
@@ -341,10 +384,8 @@ function AdminCenter() {
             </div>
 
             <div className="tab-content">
-                {/* ===== تبويب المستخدمين ===== */}
                 {activeTab === "users" && (
                     <>
-                        {/* شريط الأدوات */}
                         <div className="management-toolbar flex-wrap">
                             <input
                                 type="search"
@@ -361,14 +402,19 @@ function AdminCenter() {
                                 <option value="inactive">{text.inactive}</option>
                                 <option value="rejected">{text.rejected}</option>
                             </select>
-                            <select className="form-select" value={roleId} onChange={(e) => setRoleId(e.target.value)} style={{ width: "140px" }}>
-                                <option value="all">{text.role}</option>
+                            <select className="form-select" value={roleId} onChange={(e) => setRoleId(e.target.value)} style={{ width: "150px" }}>
+                                <option value="all">{text.currentRole}</option>
                                 {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
                             </select>
-                            <span className="badge bg-light text-dark ms-auto px-3 py-2">{pagination?.total || users.length}</span>
+                            <select className="form-select" value={requestedRoleId} onChange={(e) => setRequestedRoleId(e.target.value)} style={{ width: "150px" }}>
+                                <option value="all">{text.requestedRole}</option>
+                                {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                            </select>
+                            <span className="badge bg-light text-dark ms-auto px-3 py-2">
+                                {loadingUsers ? '...' : (pagination?.total || users.length)}
+                            </span>
                         </div>
 
-                        {/* جدول المستخدمين */}
                         <div className="table-responsive">
                             <table className="system-table">
                                 <thead>
@@ -385,37 +431,58 @@ function AdminCenter() {
                                     {loadingUsers ? (
                                         <tr><td colSpan="6" className="text-center text-muted py-4">{text.loading}</td></tr>
                                     ) : users.length === 0 ? (
-                                        <tr><td colSpan="6" className="text-center text-muted py-4">{text.noUsers}</td></tr>
-                                    ) : users.map((user) => (
-                                        <tr key={user.id}>
-                                            <td><strong>{user.name}</strong></td>
-                                            <td>{user.email}</td>
-                                            <td>{user.requestedRole?.name || "—"}</td>
-                                            <td>{user.role?.name || "—"}</td>
-                                            <td><span className={statusClass(user.status)}>{statusLabel(user.status)}</span></td>
-                                            <td className="text-center">
-                                                <div className="d-flex gap-2 justify-content-center flex-wrap">
-                                                    {user.status === "pending" && (
-                                                        <>
-                                                            <button className="btn btn-sm btn-success" onClick={() => openApprove(user)}>{text.approve}</button>
-                                                            <button className="btn btn-sm btn-danger" onClick={() => openReject(user)}>{text.reject}</button>
-                                                        </>
-                                                    )}
-                                                    {user.status === "active" && (
-                                                        <button className="btn btn-sm btn-outline-danger" onClick={() => confirmDeactivate(user)}>{text.deactivate}</button>
-                                                    )}
-                                                    {user.status === "inactive" && (
-                                                        <button className="btn btn-sm btn-outline-success" onClick={() => activateUser(user)}>{text.activate}</button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                        <tr><td colSpan="6" className="text-center text-muted py-4">{text.noResults}</td></tr>
+                                    ) : (
+                                        users.map((user) => {
+                                            let requestedRoleName = user.requestedRole?.name;
+                                            if (!requestedRoleName && user.requested_role_id) {
+                                                const found = roles.find(r => r.id === user.requested_role_id);
+                                                if (found) requestedRoleName = found.name;
+                                            }
+                                            if (!requestedRoleName) requestedRoleName = "—";
+
+                                            let currentRoleName = user.role?.name;
+                                            if (!currentRoleName && user.role_id) {
+                                                const found = roles.find(r => r.id === user.role_id);
+                                                if (found) currentRoleName = found.name;
+                                            }
+                                            if (user.status === "pending" && !user.role && user.requested_role_id) {
+                                                currentRoleName = requestedRoleName + text.requestedSuffix;
+                                            } else if (!currentRoleName) {
+                                                currentRoleName = "—";
+                                            }
+
+                                            return (
+                                                <tr key={user.id}>
+                                                    <td><strong>{user.name}</strong></td>
+                                                    <td>{user.email}</td>
+                                                    <td>{requestedRoleName}</td>
+                                                    <td>{currentRoleName}</td>
+                                                    <td><span className={statusClass(user.status)}>{statusLabel(user.status)}</span></td>
+                                                    <td className="text-center">
+                                                        <div className="d-flex gap-2 justify-content-center flex-wrap">
+                                                            {user.status === "pending" && (
+                                                                <>
+                                                                    <button className="btn btn-sm btn-success" onClick={() => openApprove(user)}>{text.approve}</button>
+                                                                    <button className="btn btn-sm btn-danger" onClick={() => openReject(user)}>{text.reject}</button>
+                                                                </>
+                                                            )}
+                                                            {user.status === "active" && (
+                                                                <button className="btn btn-sm btn-outline-danger" onClick={() => confirmDeactivate(user)}>{text.deactivate}</button>
+                                                            )}
+                                                            {user.status === "inactive" && (
+                                                                <button className="btn btn-sm btn-outline-success" onClick={() => activateUser(user)}>{text.activate}</button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
-                        {/* مودال الموافقة */}
                         {selectedUser && (
                             <div className="system-modal-backdrop" onClick={closeApprove}>
                                 <div className="system-modal" style={{ maxWidth: "500px" }} onClick={(e) => e.stopPropagation()}>
@@ -432,14 +499,13 @@ function AdminCenter() {
                                         </select>
                                     </div>
                                     <div className="system-modal-footer">
-                                        <button className="modal-button modal-button-secondary" onClick={closeApprove} disabled={actionLoading}>{text.cancel}</button>
-                                        <button className="modal-button modal-button-success" onClick={approveUser} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmApprove}</button>
+                                        <button className="btn btn-secondary" onClick={closeApprove} disabled={actionLoading}>{text.cancel}</button>
+                                        <button className="btn btn-success" onClick={approveUser} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmApprove}</button>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* مودال الرفض */}
                         {rejectingUser && (
                             <div className="system-modal-backdrop" onClick={closeReject}>
                                 <div className="system-modal" style={{ maxWidth: "500px" }} onClick={(e) => e.stopPropagation()}>
@@ -453,14 +519,13 @@ function AdminCenter() {
                                         <textarea className="form-control" rows="3" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder={text.rejectionReasonLabel} disabled={actionLoading} />
                                     </div>
                                     <div className="system-modal-footer">
-                                        <button className="modal-button modal-button-secondary" onClick={closeReject} disabled={actionLoading}>{text.cancel}</button>
-                                        <button className="modal-button modal-button-danger" onClick={rejectUser} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmReject}</button>
+                                        <button className="btn btn-secondary" onClick={closeReject} disabled={actionLoading}>{text.cancel}</button>
+                                        <button className="btn btn-danger" onClick={rejectUser} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmReject}</button>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* مودال تأكيد التعطيل */}
                         {deactivateConfirm && (
                             <div className="system-modal-backdrop" onClick={() => setDeactivateConfirm(null)}>
                                 <div className="system-modal" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
@@ -473,8 +538,8 @@ function AdminCenter() {
                                         <p><strong>{deactivateConfirm.name}</strong> ({deactivateConfirm.email})</p>
                                     </div>
                                     <div className="system-modal-footer">
-                                        <button className="modal-button modal-button-secondary" onClick={() => setDeactivateConfirm(null)} disabled={actionLoading}>{text.cancel}</button>
-                                        <button className="modal-button modal-button-danger" onClick={executeDeactivate} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmDeactivate}</button>
+                                        <button className="btn btn-secondary" onClick={() => setDeactivateConfirm(null)} disabled={actionLoading}>{text.cancel}</button>
+                                        <button className="btn btn-danger" onClick={executeDeactivate} disabled={actionLoading}>{actionLoading ? text.loading : text.confirmDeactivate}</button>
                                     </div>
                                 </div>
                             </div>
@@ -482,7 +547,6 @@ function AdminCenter() {
                     </>
                 )}
 
-                {/* ===== تبويب الأدوار ===== */}
                 {activeTab === "roles" && (
                     <>
                         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -494,7 +558,7 @@ function AdminCenter() {
                             <table className="system-table">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
+                                        <th>{text.idColumn}</th>
                                         <th>{text.roleName}</th>
                                         <th>{text.roleDescription}</th>
                                         <th>{text.permissionsLabel}</th>
@@ -518,9 +582,29 @@ function AdminCenter() {
                                             </td>
                                             <td className="text-center">
                                                 <div className="d-flex gap-2 justify-content-center">
-                                                    <button className="btn btn-sm btn-outline-primary" onClick={() => openRoleModal(role)}>{text.editRole}</button>
+                                                    <button 
+                                                        className="btn btn-sm btn-outline-primary" 
+                                                        onClick={() => openRoleModal(role)}
+                                                        style={{ 
+                                                            borderRadius: '8px', 
+                                                            whiteSpace: 'nowrap',
+                                                            padding: '4px 12px',
+                                                        }}
+                                                    >
+                                                        {text.editRole}
+                                                    </button>
                                                     {role.name !== "Admin" && (
-                                                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteRole(role.id)}>{text.deleteRole}</button>
+                                                        <button 
+                                                            className="btn btn-sm btn-outline-danger" 
+                                                            onClick={() => handleDeleteRole(role.id)}
+                                                            style={{ 
+                                                                borderRadius: '8px', 
+                                                                whiteSpace: 'nowrap',
+                                                                padding: '4px 12px',
+                                                            }}
+                                                        >
+                                                            {text.deleteRole}
+                                                        </button>
                                                     )}
                                                 </div>
                                             </td>
@@ -530,7 +614,6 @@ function AdminCenter() {
                             </table>
                         </div>
 
-                        {/* مودال إضافة/تعديل دور */}
                         {showRoleModal && (
                             <div className="system-modal-backdrop" onClick={closeRoleModal}>
                                 <div className="system-modal" style={{ maxWidth: "600px" }} onClick={(e) => e.stopPropagation()}>
@@ -569,8 +652,8 @@ function AdminCenter() {
                                             </div>
                                         </div>
                                         <div className="system-modal-footer">
-                                            <button type="button" className="modal-button modal-button-secondary" onClick={closeRoleModal}>{text.cancel}</button>
-                                            <button type="submit" className="modal-button modal-button-success">{text.save}</button>
+                                            <button type="button" className="btn btn-secondary" onClick={closeRoleModal}>{text.cancel}</button>
+                                            <button type="submit" className="btn btn-success">{text.save}</button>
                                         </div>
                                     </form>
                                 </div>

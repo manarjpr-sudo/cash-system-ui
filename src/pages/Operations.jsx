@@ -7,6 +7,7 @@ import OperationForm from "../components/operations/OperationForm";
 import TableSkeleton from "../components/common/TableSkeleton";
 import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useSettings } from "../context/SettingsContext";
 import api from "../api/axios";
 import { exportToExcel, exportToPDF } from "../utils/exportUtils";
 import FormatAmount from "../components/common/FormatAmount";
@@ -19,6 +20,7 @@ import { FaArrowUp, FaArrowDown } from "react-icons/fa";
 const CustomersSimple = ({ onCustomerAdded }) => {
     const { language } = useLanguage();
     const { hasPermission } = useContext(AuthContext);
+    const { settings } = useSettings();
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -91,7 +93,9 @@ const CustomersSimple = ({ onCustomerAdded }) => {
     const loadCustomers = async () => {
         try {
             setLoading(true);
-            const res = await api.get('/customers');
+            const res = await api.get('/customers', {
+                params: { per_page: settings.items_per_page || 10 }
+            });
             const data = res.data?.data || res.data || [];
             setCustomers(data);
         } catch (e) { console.error(e); }
@@ -402,6 +406,7 @@ const CustomersSimple = ({ onCustomerAdded }) => {
 function Operations() {
     const { language } = useLanguage();
     const { hasPermission } = useContext(AuthContext);
+    const { settings } = useSettings();
     const location = useLocation();
 
     const [activeTab, setActiveTab] = useState("operations");
@@ -414,10 +419,12 @@ function Operations() {
     const [typeFilter, setTypeFilter] = useState("all");
     const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, netCash: 0, pending: 0 });
     const [selectedOperation, setSelectedOperation] = useState(null);
+    const [pagination, setPagination] = useState(null);
 
     const t = {
         ar: {
             title: "العمليات المالية",
+            pageDescription: "إدارة العمليات المالية والموافقات",
             create: "إنشاء عملية",
             loading: "جارٍ التحميل...",
             created: "تم إنشاء العملية بنجاح",
@@ -450,6 +457,7 @@ function Operations() {
             tabOperations: "العمليات",
             tabCustomers: "العملاء",
             details: "تفاصيل العملية",
+            operationDetails: "تفاصيل العملية",
             close: "إغلاق",
             description: "الوصف",
             customer: "العميل",
@@ -457,9 +465,12 @@ function Operations() {
             subCategory: "التصنيف الفرعي",
             rejectionReason: "سبب الرفض",
             noReason: "لا يوجد سبب",
+            noCustomer: "لا يوجد عميل",
+            noDescription: "لا يوجد وصف",
         },
         en: {
             title: "Financial Operations",
+            pageDescription: "Manage financial operations and approvals",
             create: "Create Operation",
             loading: "Loading...",
             created: "Operation created successfully",
@@ -492,6 +503,7 @@ function Operations() {
             tabOperations: "Operations",
             tabCustomers: "Customers",
             details: "Operation Details",
+            operationDetails: "Operation Details",
             close: "Close",
             description: "Description",
             customer: "Customer",
@@ -499,6 +511,8 @@ function Operations() {
             subCategory: "Sub Category",
             rejectionReason: "Rejection Reason",
             noReason: "No reason provided",
+            noCustomer: "No Customer",
+            noDescription: "No description",
         },
     };
     const lang = language === "ar" ? t.ar : t.en;
@@ -514,33 +528,57 @@ function Operations() {
     const loadOperations = async () => {
         try {
             setLoading(true);
-            const params = {};
+            const params = { per_page: settings.items_per_page || 10, };
             if (search.trim()) params.search = search.trim();
             if (statusFilter !== "all") params.status = statusFilter;
             if (typeFilter !== "all") params.type = typeFilter;
             const response = await operationService.getAll(params);
             const ops = response.data?.data || [];
             setOperations(ops);
+            setPagination(response.data || null);
+            // حساب الإحصائيات
             const totalIncome = ops.filter(op => op.type === 'receipt' && op.status === 'approved')
                 .reduce((sum, op) => sum + Number(op.amount), 0);
             const totalExpense = ops.filter(op => op.type === 'payment' && op.status === 'approved')
                 .reduce((sum, op) => sum + Number(op.amount), 0);
             const pending = ops.filter(op => op.status === 'pending').length;
             setStats({ totalIncome, totalExpense, netCash: totalIncome - totalExpense, pending });
-        } catch (error) {
-            console.error(error);
-            toast.error(lang.failedCreate);
-        } finally {
-            setLoading(false);
-        }
-    };
+            } catch (error) {
+                console.error(error);
+                toast.error(lang.failedCreate);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const loadCustomers = async () => {
-        try {
-            const response = await customerService.getAll();
-            setCustomers(response.data?.data || []);
-        } catch (error) { console.error(error); }
-    };
+         // ✅ تعديل دالة التصدير لاستخدام جميع البيانات (بدون Pagination)
+        const exportAllOperations = async () => {
+            try {
+                const response = await operationService.getAll({ 
+                    search: search.trim() || undefined,
+                    status: statusFilter !== "all" ? statusFilter : undefined,
+                    type: typeFilter !== "all" ? typeFilter : undefined,
+                    per_page: 10000 // جلب كل البيانات للتصدير
+                });
+                const allOps = response.data?.data || [];
+                exportToExcel(allOps, 'operations');
+            } catch (error) {
+                console.error(error);
+                toast.error('فشل التصدير');
+            }
+        };
+
+        // إعادة التحميل عند تغيير الإعدادات
+        useEffect(() => {
+            loadOperations();
+        }, [settings.items_per_page, search, statusFilter, typeFilter]);
+
+        const loadCustomers = async () => {
+            try {
+                const response = await customerService.getAll();
+                setCustomers(response.data?.data || []);
+            } catch (error) { console.error(error); }
+        };
 
     useEffect(() => {
         const timer = setTimeout(() => loadOperations(), 300);
@@ -567,12 +605,11 @@ function Operations() {
     // ✅ دالة الموافقة والرفض المحسنة
     const handleApproval = async (id, status) => {
         try {
-            // إذا كان الرفض، اطلب سبب الرفض
             let rejectionReason = null;
             if (status === 'rejected') {
                 rejectionReason = prompt(language === 'ar' ? 'أدخل سبب الرفض:' : 'Enter rejection reason:');
                 if (rejectionReason === null) {
-                    return; // المستخدم ألغى الإدخال
+                    return;
                 }
                 if (!rejectionReason.trim()) {
                     toast.error(language === 'ar' ? 'يرجى إدخال سبب الرفض' : 'Please enter a rejection reason');
@@ -626,7 +663,7 @@ function Operations() {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="h2 fw-bold mb-1" style={{ color: "#0f172a" }}>{lang.title}</h1>
-                    <p className="text-muted" style={{ fontSize: "14px" }}>إدارة العمليات المالية والموافقات</p>
+                    <p className="text-muted" style={{ fontSize: "14px" }}>{lang.pageDescription}</p>
                 </div>
                 {hasPermission("manage_operations") && (
                     <button className="btn btn-primary" onClick={handleShowForm}>
@@ -782,11 +819,11 @@ function Operations() {
                                         operations.map((op) => (
                                             <tr key={op.id} onClick={() => setSelectedOperation(op)} style={{ cursor: 'pointer' }}>
                                                 <td className="px-3 py-3 text-center fw-semibold">{op.id}</td>
-                                                <td className="px-3 py-3 text-center">{op.customer?.name || "N/A"}</td>
+                                                <td className="px-3 py-3 text-center">{op.customer?.name || lang.noCustomer}</td>
                                                 <td className="px-3 py-3 text-center">
                                                     <span className={`badge ${op.type === 'receipt' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'} px-3 py-2`}>
                                                         {op.type === 'receipt' ? <FaArrowUp className="me-1" /> : <FaArrowDown className="me-1" />}
-                                                        {op.type === 'receipt' ? 'دخل' : 'خرج'}
+                                                        {op.type === 'receipt' ? lang.receipt : lang.payment}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-3 text-center fw-bold"><FormatAmount value={op.amount} /></td>
@@ -797,11 +834,11 @@ function Operations() {
                                                             title={op.rejection_reason || lang.noReason}
                                                             style={{ cursor: 'help' }}
                                                         >
-                                                            ✗ {lang.rejected}
+                                                            ✗ {lang.rejectedStatus}
                                                         </span>
                                                     ) : (
                                                         <span className={`badge ${op.status === 'pending' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-success bg-opacity-10 text-success'} px-3 py-2`}>
-                                                            {op.status === 'pending' ? lang.pending : lang.approved}
+                                                            {op.status === 'pending' ? lang.pending : lang.approvedStatus}
                                                         </span>
                                                     )}
                                                 </td>
@@ -818,7 +855,7 @@ function Operations() {
                                                         </div>
                                                     )}
                                                     {op.status === "approved" && (
-                                                        <span className="badge bg-success">✓ {lang.approved}</span>
+                                                        <span className="badge bg-success">✓ {lang.approvedStatus}</span>
                                                     )}
                                                     {op.status === "rejected" && (
                                                         <span 
@@ -826,7 +863,7 @@ function Operations() {
                                                             title={op.rejection_reason || lang.noReason}
                                                             style={{ cursor: 'help' }}
                                                         >
-                                                            ✗ {lang.rejected}
+                                                            ✗ {lang.rejectedStatus}
                                                         </span>
                                                     )}
                                                 </td>
@@ -875,7 +912,7 @@ function Operations() {
                                         borderRadius: "16px 16px 0 0"
                                     }}>
                                         <h3 style={{ margin: 0, fontWeight: 600, fontSize: "18px", color: "#0f172a" }}>
-                                            {lang.details} #{selectedOperation.id}
+                                            {lang.operationDetails} #{selectedOperation.id}
                                         </h3>
                                         <button className="modal-close" onClick={() => setSelectedOperation(null)} style={{ 
                                             background: "none", 
@@ -928,11 +965,11 @@ function Operations() {
                                                             title={selectedOperation.rejection_reason || lang.noReason}
                                                             style={{ cursor: 'help' }}
                                                         >
-                                                            ✗ {lang.rejected}
+                                                            ✗ {lang.rejectedStatus}
                                                         </span>
                                                     ) : (
                                                         <span className={`badge ${selectedOperation.status === 'pending' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-success bg-opacity-10 text-success'} px-3 py-2`}>
-                                                            {selectedOperation.status === 'pending' ? lang.pending : lang.approved}
+                                                            {selectedOperation.status === 'pending' ? lang.pending : lang.approvedStatus}
                                                         </span>
                                                     )}
                                                 </div>
@@ -1018,7 +1055,7 @@ function Operations() {
                                                     border: "1px solid #e9edf2",
                                                     minHeight: "50px"
                                                 }}>
-                                                    {selectedOperation.description || (language === 'ar' ? 'لا يوجد وصف' : 'No description')}
+                                                    {selectedOperation.description || lang.noDescription}
                                                 </div>
                                             </div>
                                         </div>

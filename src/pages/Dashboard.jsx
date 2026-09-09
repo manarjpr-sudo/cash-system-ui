@@ -15,6 +15,9 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    // ============================================================
+    // قاموس الترجمة (جميع النصوص)
+    // ============================================================
     const t = {
         ar: {
             title: "لوحة المعلومات",
@@ -39,6 +42,15 @@ function Dashboard() {
             date: "التاريخ",
             incomeExpenseChart: "الدخل مقابل الخرج",
             statusDistribution: "توزيع الحالات",
+            // المفاتيح الجديدة
+            income: "إيرادات",
+            expense: "مصروفات",
+            totalReceiptsDesc: "إجمالي الإيرادات",
+            totalPaymentsDesc: "إجمالي المصروفات",
+            netCashDesc: "صافي التدفق النقدي",
+            latestOpsSub: "جميع العمليات المسجلة حديثاً",
+            receipt: "دخل",
+            payment: "خرج",
         },
         en: {
             title: "Dashboard",
@@ -63,10 +75,21 @@ function Dashboard() {
             date: "Date",
             incomeExpenseChart: "Income vs Expense",
             statusDistribution: "Status Distribution",
+            // المفاتيح الجديدة
+            income: "Income",
+            expense: "Expense",
+            totalReceiptsDesc: "Total Receipts",
+            totalPaymentsDesc: "Total Payments",
+            netCashDesc: "Net Cash Flow",
+            latestOpsSub: "All recently recorded operations",
+            receipt: "Income",
+            payment: "Expense",
         },
     };
+
     const lang = language === "ar" ? t.ar : t.en;
 
+    // جلب البيانات عند تحميل الصفحة
     useEffect(() => {
         loadDashboard();
     }, []);
@@ -86,24 +109,28 @@ function Dashboard() {
     const stats = data?.stats || {};
     const latestOperations = data?.latestOperations || [];
 
+    // ============================================================
+    // بيانات الرسم البياني (تعتمد على اللغة)
+    // ============================================================
+    const barData = [
+        { name: lang.income, value: stats.totalReceipts || 0 },
+        { name: lang.expense, value: stats.totalPayments || 0 },
+    ];
+
+    // بيانات المخطط الدائري (تُترجم الأسماء)
     const pieData = [
         { name: lang.pending, value: stats.pendingOperations || 0 },
         { name: lang.approved, value: stats.approvedOperations || 0 },
         { name: lang.rejected, value: stats.rejectedOperations || 0 },
     ].filter(item => item.value > 0);
 
-    const barData = [
-        { name: "الإيرادات", value: stats.totalReceipts || 0 },
-        { name: "المصروفات", value: stats.totalPayments || 0 },
-    ];
-
+    // الألوان
     const CARD_COLORS = {
         customers: { bg: '#dbeafe', icon: '#2563eb' },
         users: { bg: '#dcfce7', icon: '#16a34a' },
         operations: { bg: '#fef3c7', icon: '#d97706' },
         transactions: { bg: '#e0e7ff', icon: '#4f46e5' },
     };
-
     const PIE_COLORS = ['#f59e0b', '#10b981', '#ef4444'];
     const BAR_COLORS = ['#10b981', '#ef4444'];
 
@@ -209,12 +236,12 @@ function Dashboard() {
                         <div className="d-flex justify-content-center gap-4 mt-3">
                             <div className="d-flex align-items-center gap-2">
                                 <span style={{ display: "inline-block", width: "12px", height: "12px", background: "#10b981", borderRadius: "4px" }}></span>
-                                <span style={{ fontSize: "12px", color: "#64748b" }}>إيرادات</span>
+                                <span style={{ fontSize: "12px", color: "#64748b" }}>{lang.income}</span>
                                 <strong className="ms-1" style={{ fontSize: "14px", color: "#0f172a" }}><FormatAmount value={stats.totalReceipts || 0} /></strong>
                             </div>
                             <div className="d-flex align-items-center gap-2">
                                 <span style={{ display: "inline-block", width: "12px", height: "12px", background: "#ef4444", borderRadius: "4px" }}></span>
-                                <span style={{ fontSize: "12px", color: "#64748b" }}>مصروفات</span>
+                                <span style={{ fontSize: "12px", color: "#64748b" }}>{lang.expense}</span>
                                 <strong className="ms-1" style={{ fontSize: "14px", color: "#0f172a" }}><FormatAmount value={stats.totalPayments || 0} /></strong>
                             </div>
                         </div>
@@ -276,7 +303,7 @@ function Dashboard() {
                                 ▲
                             </span>
                         </div>
-                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>إجمالي الإيرادات</div>
+                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>{lang.totalReceiptsDesc}</div>
                     </div>
                 </div>
                 <div className="col-md-4">
@@ -293,7 +320,7 @@ function Dashboard() {
                                 ▼
                             </span>
                         </div>
-                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>إجمالي المصروفات</div>
+                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>{lang.totalPaymentsDesc}</div>
                     </div>
                 </div>
                 <div className="col-md-4">
@@ -310,7 +337,7 @@ function Dashboard() {
                                 {stats.netCash >= 0 ? '▲' : '▼'}
                             </span>
                         </div>
-                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>صافي التدفق النقدي</div>
+                        <div className="financial-description" style={{ fontSize: "12px", color: "#94a3b8" }}>{lang.netCashDesc}</div>
                     </div>
                 </div>
             </div>
@@ -323,7 +350,7 @@ function Dashboard() {
                 <div className="dashboard-panel-header bg-white px-4 py-3 d-flex align-items-center justify-content-between" style={{ borderBottom: "1px solid #e9edf2" }}>
                     <div>
                         <h2 className="h5 fw-bold mb-0" style={{ color: "#0f172a" }}>{lang.latestOps}</h2>
-                        <p className="text-muted small mb-0">جميع العمليات المسجلة حديثاً</p>
+                        <p className="text-muted small mb-0">{lang.latestOpsSub}</p>
                     </div>
                     <Link to="/operations" className="dashboard-view-link" style={{ color: "#2563eb", fontWeight: "500", textDecoration: "none" }}>
                         {lang.viewAll}
@@ -348,11 +375,11 @@ function Dashboard() {
                                     <tr><td colSpan="5" className="text-center text-muted py-4">{lang.noData}</td></tr>
                                 ) : (
                                     latestOperations.map((op) => (
-                                        <tr key={op.id} onClick={() => navigate(`/operations?status=${op.status}`)} style={{ cursor: 'pointer' }}>
+                                        <tr key={op.id}>
                                             <td className="px-4 py-3 text-center fw-semibold" style={{ borderBottom: "1px solid #e9edf2" }}>{op.id}</td>
                                             <td className="px-4 py-3 text-center" style={{ borderBottom: "1px solid #e9edf2" }}>
                                                 <span className={`badge ${op.type === 'receipt' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'} px-3 py-2`} style={{ fontSize: "12px", fontWeight: "500" }}>
-                                                    {op.type === 'receipt' ? 'دخل' : 'خرج'}
+                                                    {op.type === 'receipt' ? lang.receipt : lang.payment}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-center fw-bold" style={{ borderBottom: "1px solid #e9edf2", color: "#0f172a" }}><FormatAmount value={op.amount} /></td>

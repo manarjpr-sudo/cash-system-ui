@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext";
+import { FaMoon, FaSun } from "react-icons/fa";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
 
 // SVG Icons
 const EyeOpen = () => (
@@ -20,7 +23,6 @@ const EyeClosed = () => (
 
 function Register() {
     const [roles, setRoles] = useState([]);
-
     const [form, setForm] = useState({
         name: "",
         email: "",
@@ -28,17 +30,16 @@ function Register() {
         password_confirmation: "",
         requested_role_id: "",
     });
-
     const [loadingRoles, setLoadingRoles] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const navigate = useNavigate();
-    const { t, language, changeLanguage } = useLanguage();
+    const { t, language } = useLanguage();
+    const { isDark, toggleTheme } = useTheme();
 
     useEffect(() => {
         loadRoles();
@@ -69,36 +70,26 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         setError("");
         setSuccess("");
         setSubmitting(true);
 
         try {
             const response = await axios.post("http://127.0.0.1:8000/api/register", form);
-
             setSuccess(
                 response.data?.message ||
                 (language === "ar"
                     ? "تم إرسال طلب التسجيل بنجاح."
                     : "Registration submitted successfully.")
             );
-
             setTimeout(() => {
                 navigate("/registration-pending");
             }, 900);
-
         } catch (error) {
             console.error(error);
-
-            const validationErrors =
-                error.response?.data?.errors;
-
+            const validationErrors = error.response?.data?.errors;
             if (validationErrors) {
-                const firstError = Object.values(validationErrors)
-                    .flat()
-                    .at(0);
-
+                const firstError = Object.values(validationErrors).flat().at(0);
                 setError(firstError || "Registration failed.");
             } else {
                 setError(
@@ -113,28 +104,54 @@ function Register() {
         }
     };
 
-    return (
-        <div className="auth-page">
+    const iconButtonStyle = {
+        width: '36px',
+        height: '36px',
+        padding: '0',
+        border: '1px solid #e2e8f0',
+        background: 'transparent',
+        color: '#475569',
+        transition: 'all 0.2s ease',
+        fontSize: '16px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        borderRadius: '50%',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+    };
 
-            <div className="auth-language-switcher">
+    const iconButtonHover = {
+        borderColor: '#94a3b8',
+        color: '#0f172a',
+        background: '#f8fafc',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    };
+
+    return (
+        <div className="min-h-screen d-flex flex-column align-items-center justify-content-center" style={{ background: '#f4f6f9', padding: '30px' }}>
+            {/* شريط اللغة والوضع الليلي */}
+            <div className="w-100 d-flex justify-content-end px-3" style={{ maxWidth: '1080px', marginBottom: '20px', gap: '10px' }}>
+                <LanguageSwitcher />
                 <button
-                    type="button"
-                    className={language === "ar" ? "language-button active" : "language-button"}
-                    onClick={() => changeLanguage("ar")}
+                    onClick={toggleTheme}
+                    className="btn"
+                    style={iconButtonStyle}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.color = '#475569';
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
+                    }}
+                    title={isDark ? (language === 'ar' ? 'الوضع الفاتح' : 'Light Mode') : (language === 'ar' ? 'الوضع المظلم' : 'Dark Mode')}
                 >
-                    العربية
-                </button>
-                <span className="language-divider">/</span>
-                <button
-                    type="button"
-                    className={language === "en" ? "language-button active" : "language-button"}
-                    onClick={() => changeLanguage("en")}
-                >
-                    English
+                    {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
                 </button>
             </div>
 
-            <div className="auth-shell">
+            {/* بطاقة التسجيل */}
+            <div className="auth-shell" style={{ maxWidth: '1080px', width: '100%' }}>
                 <section className="auth-brand-panel">
                     <div className="auth-brand-main">
                         <div className="auth-logo">$</div>
@@ -257,7 +274,6 @@ function Register() {
                             </small>
                         </div>
 
-                        {/* 🔥 حقل كلمة المرور */}
                         <div className="auth-field">
                             <label htmlFor="register-password">{t("auth.password")}</label>
                             <div style={{
@@ -306,7 +322,6 @@ function Register() {
                                     onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
                                     onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {/* 🔥 التعديل هنا: مغلق افتراضياً */}
                                     {showPassword ? <EyeOpen /> : <EyeClosed />}
                                 </button>
                             </div>
@@ -317,7 +332,6 @@ function Register() {
                             </small>
                         </div>
 
-                        {/* 🔥 حقل تأكيد كلمة المرور */}
                         <div className="auth-field">
                             <label htmlFor="register-confirm-password">{t("auth.confirmPassword")}</label>
                             <div style={{
@@ -366,7 +380,6 @@ function Register() {
                                     onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
                                     onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {/* 🔥 التعديل هنا: مغلق افتراضياً */}
                                     {showConfirm ? <EyeOpen /> : <EyeClosed />}
                                 </button>
                             </div>

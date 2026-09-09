@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext";
+import { FaMoon, FaSun } from "react-icons/fa";
+import LanguageSwitcher from "../components/common/LanguageSwitcher";
 
 // SVG Icons
 const EyeOpen = () => (
@@ -26,7 +29,8 @@ function Login() {
     const [showPassword, setShowPassword] = useState(false);
 
     const { login } = useContext(AuthContext);
-    const { t, language, changeLanguage } = useLanguage();
+    const { t, language } = useLanguage();
+    const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
@@ -49,27 +53,49 @@ function Login() {
         }
     };
 
-    const handleLanguageChange = (newLanguage) => {
-        changeLanguage(newLanguage);
+    // نمط موحد للأزرار الدائرية
+    const iconButtonStyle = {
+        width: '36px',
+        height: '36px',
+        padding: '0',
+        border: '1px solid #e2e8f0',
+        background: 'transparent',
+        color: '#475569',
+        transition: 'all 0.2s ease',
+        fontSize: '16px',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        borderRadius: '50%',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+    };
+
+    const iconButtonHover = {
+        borderColor: '#94a3b8',
+        color: '#0f172a',
+        background: '#f8fafc',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     };
 
     return (
         <div className="auth-page">
-            <div className="auth-language-switcher">
+            <div className="auth-language-switcher" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <LanguageSwitcher />
                 <button
-                    type="button"
-                    className={language === "ar" ? "language-button active" : "language-button"}
-                    onClick={() => handleLanguageChange("ar")}
+                    onClick={toggleTheme}
+                    className="btn"
+                    style={iconButtonStyle}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.color = '#475569';
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
+                    }}
+                    title={isDark ? (language === 'ar' ? 'الوضع الفاتح' : 'Light Mode') : (language === 'ar' ? 'الوضع المظلم' : 'Dark Mode')}
                 >
-                    العربية
-                </button>
-                <span className="language-divider">/</span>
-                <button
-                    type="button"
-                    className={language === "en" ? "language-button active" : "language-button"}
-                    onClick={() => handleLanguageChange("en")}
-                >
-                    English
+                    {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
                 </button>
             </div>
 
@@ -195,7 +221,6 @@ function Login() {
                                     onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
                                     onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {/* 🔥 التعديل هنا: افتراضي مغلق، عند الضغط مفتوح */}
                                     {showPassword ? <EyeOpen /> : <EyeClosed />}
                                 </button>
                             </div>

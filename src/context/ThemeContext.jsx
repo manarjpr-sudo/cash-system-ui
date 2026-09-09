@@ -1,19 +1,20 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
-export const ThemeProvider = ({ children }) => {
+export function ThemeProvider({ children }) {
     const [isDark, setIsDark] = useState(() => {
         const saved = localStorage.getItem("theme");
-        return saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        return saved === "dark";
     });
 
     useEffect(() => {
+        const root = document.documentElement;
         if (isDark) {
-            document.documentElement.classList.add("dark");
+            root.classList.add("dark");
             localStorage.setItem("theme", "dark");
         } else {
-            document.documentElement.classList.remove("dark");
+            root.classList.remove("dark");
             localStorage.setItem("theme", "light");
         }
     }, [isDark]);
@@ -25,6 +26,8 @@ export const ThemeProvider = ({ children }) => {
             {children}
         </ThemeContext.Provider>
     );
-};
+}
 
-export const useTheme = () => useContext(ThemeContext);
+export function useTheme() {
+    return useContext(ThemeContext);
+}

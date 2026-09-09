@@ -1,29 +1,45 @@
+import { useSettings } from "../../context/SettingsContext";
 import { useState, useEffect } from "react";
-import { getSettings } from "../../services/settingsService";
 
-function FormatAmount({ value, showCurrency = true }) {
-    const [currencySymbol, setCurrencySymbol] = useState("$");
+function FormatDate({ value }) {
+    const { settings } = useSettings();
+    const [forceUpdate, setForceUpdate] = useState(0);
 
+    // فرض إعادة التصيير عند تغيير date_format
     useEffect(() => {
-        const loadSettings = async () => {
-            const settings = await getSettings();
-            setCurrencySymbol(settings.currency_symbol || "$");
-        };
-        loadSettings();
-    }, []);
+        setForceUpdate(prev => prev + 1);
+    }, [settings.date_format]);
 
-    const num = Number(value);
-    const amount = isNaN(num) ? 0 : num;
+    if (!value) return <span>-</span>;
 
-    return (
-        <span className="fw-bold">
-            {showCurrency ? `${currencySymbol} ` : ""}
-            {amount.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            })}
-        </span>
-    );
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return <span>{value}</span>;
+
+    const format = settings.date_format || 'YYYY-MM-DD';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    let formatted = '';
+    switch (format) {
+        case 'YYYY-MM-DD':
+            formatted = `${year}-${month}-${day}`;
+            break;
+        case 'DD/MM/YYYY':
+            formatted = `${day}/${month}/${year}`;
+            break;
+        case 'MM/DD/YYYY':
+            formatted = `${month}/${day}/${year}`;
+            break;
+        case 'DD-MM-YYYY':
+            formatted = `${day}-${month}-${year}`;
+            break;
+        default:
+            formatted = `${year}-${month}-${day}`;
+    }
+
+    return <span key={forceUpdate}>{formatted}</span>;
 }
 
-export default FormatAmount;
+export default FormatDate;

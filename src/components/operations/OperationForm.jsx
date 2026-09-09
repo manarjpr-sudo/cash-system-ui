@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../context/LanguageContext";
+import { useSettings } from "../../context/SettingsContext";
 import api from "../../api/axios";
 import { toast } from "react-toastify";
 
 function OperationForm({ customers = [], onSave, onCancel, operation = null, onCustomerAdded }) {
     const { language } = useLanguage();
+    const { settings } = useSettings();
 
     const [formData, setFormData] = useState({
         customer_id: "",
@@ -14,15 +16,16 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
         category_id: "",
         category_name: "",
         sub_category_id: "",
-        sub_category_name: "", // ✅ لتخزين اسم التصنيف الفرعي المدخل
+        sub_category_name: "",
     });
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
-
-    // مودال إضافة عميل
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" });
     const [addingCustomer, setAddingCustomer] = useState(false);
+
+    const categoryDebounceTimer = useRef(null);
+    const subCategoryDebounceTimer = useRef(null);
 
     const t = {
         ar: {
@@ -76,7 +79,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
     };
     const lang = language === "ar" ? t.ar : t.en;
 
-    // تحميل التصنيفات
     const loadCategories = async () => {
         try {
             const response = await api.get("/categories");
@@ -111,11 +113,15 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
     };
 
     // ============================================================
-    // دوال التصنيف الأساسي (مع إضافة تلقائية)
+    // دالة التصنيف الأساسي - بدون رسائل منبثقة
     // ============================================================
-    const handleCategoryInput = async (e) => {
+    const handleCategoryInput = (e) => {
         const value = e.target.value;
         setFormData((prev) => ({ ...prev, category_name: value, category_id: "" }));
+
+        if (categoryDebounceTimer.current) {
+            clearTimeout(categoryDebounceTimer.current);
+        }
 
         const existing = categories.find(c => c.name.toLowerCase() === value.toLowerCase() && !c.parent_id);
         if (existing) {
@@ -124,37 +130,41 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
         }
 
         if (value.length >= 2) {
-            try {
-                const response = await api.post("/categories", {
-                    name: value,
-                    parent_id: null,
-                    type: formData.type || "income",
-                });
-                const newCategory = response.data;
-                setCategories(prev => [...prev, newCategory]);
-                setFormData((prev) => ({ ...prev, category_id: newCategory.id, category_name: "" }));
-                toast.success(`تم إضافة التصنيف "${value}"`);
-            } catch (error) {
-                console.error("Error adding category:", error);
-            }
+            categoryDebounceTimer.current = setTimeout(async () => {
+                try {
+                    const response = await api.post("/categories", {
+                        name: value,
+                        parent_id: null,
+                        type: formData.type || "income",
+                    });
+                    const newCategory = response.data;
+                    setCategories(prev => [...prev, newCategory]);
+                    setFormData((prev) => ({ ...prev, category_id: newCategory.id, category_name: "" }));
+                } catch (error) {
+                    console.error("Error adding category:", error);
+                }
+            }, 500);
         }
     };
 
     // ============================================================
-    // دوال التصنيف الفرعي (يعمل فقط عند وجود تصنيف أساسي)
+    // دالة التصنيف الفرعي - بدون رسائل منبثقة
     // ============================================================
-    const handleSubCategoryInput = async (e) => {
+    const handleSubCategoryInput = (e) => {
         const value = e.target.value;
         setFormData((prev) => ({ ...prev, sub_category_name: value, sub_category_id: "" }));
 
-        // إذا لم يكن هناك تصنيف أساسي، نمنع الإضافة
+        if (subCategoryDebounceTimer.current) {
+            clearTimeout(subCategoryDebounceTimer.current);
+        }
+
         if (!formData.category_id) {
-            toast.warning(lang.selectCategory);
-            setFormData((prev) => ({ ...prev, sub_category_name: "" }));
+            if (value.length > 0) {
+                setFormData((prev) => ({ ...prev, sub_category_name: "" }));
+            }
             return;
         }
 
-        // البحث عن تصنيف فرعي موجود بنفس الاسم وتحت نفس الأب
         const existing = categories.find(c =>
             c.name.toLowerCase() === value.toLowerCase() &&
             c.parent_id === parseInt(formData.category_id)
@@ -165,30 +175,31 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
         }
 
         if (value.length >= 2) {
-            try {
-                const response = await api.post("/categories", {
-                    name: value,
-                    parent_id: formData.category_id,
-                    type: formData.type || "income",
-                });
-                const newCategory = response.data;
-                setCategories(prev => [...prev, newCategory]);
-                setFormData((prev) => ({ ...prev, sub_category_id: newCategory.id, sub_category_name: "" }));
-                toast.success(`تم إضافة التصنيف الفرعي "${value}"`);
-            } catch (error) {
-                console.error("Error adding sub category:", error);
-            }
+            subCategoryDebounceTimer.current = setTimeout(async () => {
+                try {
+                    const response = await api.post("/categories", {
+                        name: value,
+                        parent_id: formData.category_id,
+                        type: formData.type || "income",
+                    });
+                    const newCategory = response.data;
+                    setCategories(prev => [...prev, newCategory]);
+                    setFormData((prev) => ({ ...prev, sub_category_id: newCategory.id, sub_category_name: "" }));
+                } catch (error) {
+                    console.error("Error adding sub category:", error);
+                }
+            }, 500);
         }
     };
 
-    // ============================================================
-    // الحصول على التصنيفات الفرعية المرتبطة بالتصنيف الأساسي الحالي
-    // ============================================================
     const getSubCategories = () => {
         if (!formData.category_id) return [];
         return categories.filter(c => c.parent_id === parseInt(formData.category_id));
     };
 
+    // ============================================================
+    // دالة الحفظ الأساسية - تستخدم auto_approve من الإعدادات
+    // ============================================================
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.customer_id) {
@@ -205,6 +216,7 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                 ...formData,
                 category_id: formData.category_id || null,
                 sub_category_id: formData.sub_category_id || null,
+                status: settings.auto_approve ? "approved" : "pending",
             };
             await onSave(dataToSend);
             setFormData({
@@ -224,7 +236,9 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
         }
     };
 
+    // ============================================================
     // دوال العميل
+    // ============================================================
     const handleNewCustomerChange = (e) => {
         const { name, value } = e.target;
         setNewCustomer((prev) => ({ ...prev, [name]: value }));
@@ -255,7 +269,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
             <div className="card p-3 mb-4">
                 <form onSubmit={handleSubmit}>
                     <div className="row g-3">
-                        {/* العميل */}
                         <div className="col-md-6">
                             <label className="form-label">{lang.customer}</label>
                             <div className="d-flex gap-2">
@@ -286,7 +299,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             </div>
                         </div>
 
-                        {/* النوع */}
                         <div className="col-md-6">
                             <label className="form-label">{lang.type}</label>
                             <select
@@ -301,7 +313,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             </select>
                         </div>
 
-                        {/* المبلغ */}
                         <div className="col-md-6">
                             <label className="form-label">{lang.amount}</label>
                             <input
@@ -317,9 +328,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             />
                         </div>
 
-                        {/* ============================================================
-                            التصنيف الأساسي - مع إضافة تلقائية عند الكتابة
-                        ============================================================ */}
                         <div className="col-md-6">
                             <label className="form-label">{lang.category}</label>
                             <input
@@ -339,10 +347,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             </datalist>
                         </div>
 
-                        {/* ============================================================
-                            التصنيف الفرعي - يظهر فقط عند اختيار تصنيف أساسي
-                            ويعمل بنفس ميزة الإضافة التلقائية
-                        ============================================================ */}
                         {formData.category_id && (
                             <div className="col-md-6">
                                 <label className="form-label">{lang.subCategory}</label>
@@ -364,7 +368,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             </div>
                         )}
 
-                        {/* الوصف */}
                         <div className="col-12">
                             <label className="form-label">{lang.description}</label>
                             <textarea
@@ -377,7 +380,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                             />
                         </div>
 
-                        {/* أزرار الحفظ والإلغاء */}
                         <div className="col-12 d-flex gap-2">
                             <button type="submit" className="btn btn-primary" disabled={loading}>
                                 {loading ? lang.saving : lang.save}
@@ -390,9 +392,6 @@ function OperationForm({ customers = [], onSave, onCancel, operation = null, onC
                 </form>
             </div>
 
-            {/* ============================================================
-                مودال إضافة عميل
-            ============================================================ */}
             {showCustomerModal && (
                 <div className="system-modal-backdrop">
                     <div className="system-modal" style={{ maxWidth: "450px" }}>
