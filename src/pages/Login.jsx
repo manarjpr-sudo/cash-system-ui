@@ -1,29 +1,54 @@
-import { useState, useContext } from "react";
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { FaMoon, FaSun } from "react-icons/fa";
 import LanguageSwitcher from "../components/common/LanguageSwitcher";
+import { authApi } from "../api/axios";
+import { FaMoon, FaSun } from "react-icons/fa";
 
-// SVG Icons
 const EyeOpen = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-        <circle cx="12" cy="12" r="3"/>
+    <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
     </svg>
 );
 
 const EyeClosed = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-        <line x1="1" y1="1" x2="23" y2="23"/>
+    <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+        <path d="M14.83 14.83a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
 );
 
 function Login() {
-    const [form, setForm] = useState({ email: "", password: "" });
+    const [form, setForm] = useState({
+        email: "",
+        password: "",
+    });
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -33,67 +58,146 @@ function Login() {
     const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const isArabic = language === "ar";
+
+    const text = isArabic
+        ? {
+              access: "تسجيل الدخول",
+              accessKicker: "الوصول إلى حسابك",
+              description: "أدخل بيانات حسابك للوصول إلى إدارة أموالك وعملياتك.",
+              welcomeTitle: "إدارة مالية أوضح وأسهل",
+              welcomeDescription:
+                  "سجّل دخلك ومصروفاتك، تابع رصيدك، ونظّم عملياتك المالية في مكان واحد.",
+              featureOne: "تسجيل الدخل والمصروفات",
+              featureTwo: "تصنيفات رئيسية وفرعية",
+              featureThree: "متابعة الرصيد والعمليات",
+              signInLoading: "جارٍ تسجيل الدخول...",
+              or: "أو",
+              createDescription: "ليس لديك حساب؟ أنشئ حسابًا جديدًا وابدأ بإدارة عملياتك.",
+              security:
+                  "بيانات حسابك وعملياتك محمية من خلال تسجيل دخول آمن وصلاحيات وصول مناسبة.",
+          }
+        : {
+              access: "Sign in",
+              accessKicker: "ACCOUNT ACCESS",
+              description:
+                  "Enter your account details to manage your finances and operations.",
+              welcomeTitle: "Simple and clear financial management",
+              welcomeDescription:
+                  "Track income and expenses, monitor your balance, and organize your financial operations in one place.",
+              featureOne: "Record income and expenses",
+              featureTwo: "Main and subcategory organization",
+              featureThree: "Track balance and operations",
+              signInLoading: "Signing in...",
+              or: "OR",
+              createDescription:
+                  "Don't have an account? Create one and start managing your operations.",
+              security:
+                  "Your account and financial data are protected through secure authentication and access controls.",
+          };
+
+    const updateField = (field, value) => {
+        setForm((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    };
+
+    const handleLogin = async (event) => {
+        event.preventDefault();
+
         setError("");
-        setLoading(true);
+
+        const email = form.email.trim();
+        const password = form.password;
+
+        if (!email || !password) {
+            setError(
+                isArabic
+                    ? "يرجى إدخال البريد الإلكتروني وكلمة المرور."
+                    : "Please enter your email and password."
+            );
+            return;
+        }
 
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/login", form);
+            setLoading(true);
+
+            const response = await authApi.post("/login", {
+                email,
+                password,
+            });
+
             login(response.data);
-            navigate("/dashboard", { replace: true });
-        } catch (error) {
-            console.error("Login error:", error);
+
+            navigate("/dashboard", {
+                replace: true,
+            });
+        } catch (requestError) {
+            console.error("Login error:", requestError);
+
+            const message = requestError.response?.data?.message;
+
             setError(
-                error.response?.data?.message ||
-                "Unable to sign in. Please check your credentials."
+                message ||
+                    (isArabic
+                        ? "تعذر تسجيل الدخول. تحقق من بياناتك وحاول مرة أخرى."
+                        : "Unable to sign in. Please check your credentials and try again.")
             );
         } finally {
             setLoading(false);
         }
     };
 
-    // نمط موحد للأزرار الدائرية
     const iconButtonStyle = {
-        width: '36px',
-        height: '36px',
-        padding: '0',
-        border: '1px solid #e2e8f0',
-        background: 'transparent',
-        color: '#475569',
-        transition: 'all 0.2s ease',
-        fontSize: '16px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-        borderRadius: '50%',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-    };
-
-    const iconButtonHover = {
-        borderColor: '#94a3b8',
-        color: '#0f172a',
-        background: '#f8fafc',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        width: "36px",
+        height: "36px",
+        padding: 0,
+        border: "1px solid #e2e8f0",
+        background: "transparent",
+        color: "#475569",
+        borderRadius: "50%",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
     };
 
     return (
         <div className="auth-page">
-            <div className="auth-language-switcher" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+                className="auth-language-switcher"
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                }}
+            >
                 <LanguageSwitcher />
+
                 <button
+                    type="button"
                     onClick={toggleTheme}
                     className="btn"
                     style={iconButtonStyle}
-                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                        e.currentTarget.style.color = '#475569';
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
-                    }}
-                    title={isDark ? (language === 'ar' ? 'الوضع الفاتح' : 'Light Mode') : (language === 'ar' ? 'الوضع المظلم' : 'Dark Mode')}
+                    title={
+                        isDark
+                            ? isArabic
+                                ? "الوضع الفاتح"
+                                : "Light mode"
+                            : isArabic
+                              ? "الوضع الداكن"
+                              : "Dark mode"
+                    }
+                    aria-label={
+                        isDark
+                            ? isArabic
+                                ? "تفعيل الوضع الفاتح"
+                                : "Switch to light mode"
+                            : isArabic
+                              ? "تفعيل الوضع الداكن"
+                              : "Switch to dark mode"
+                    }
                 >
                     {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
                 </button>
@@ -103,36 +207,44 @@ function Login() {
                 <section className="auth-brand-panel">
                     <div className="auth-brand-main">
                         <div className="auth-logo">$</div>
+
                         <div>
-                            <div className="auth-system-name">{t("app.name")}</div>
-                            <div className="auth-system-subtitle">{t("app.subtitle")}</div>
+                            <div className="auth-system-name">
+                                {t("app.name")}
+                            </div>
+
+                            <div className="auth-system-subtitle">
+                                {t("app.subtitle")}
+                            </div>
                         </div>
                     </div>
+
                     <div className="auth-brand-content">
-                        <div className="auth-eyebrow">FINANCIAL OPERATIONS PLATFORM</div>
-                        <h1>
-                            {language === "ar"
-                                ? "إدارة مالية أكثر وضوحًا وتحكمًا وأمانًا."
-                                : "Clearer, controlled and secure financial operations."}
-                        </h1>
-                        <p>
-                            {language === "ar"
-                                ? "منصة موحدة لإدارة العمليات النقدية، الموافقات، المعاملات، المستخدمين والتقارير ضمن بيئة آمنة وقابلة للتدقيق."
-                                : "A unified platform for managing cash operations, approvals, transactions, users and reporting within a secure and auditable environment."}
-                        </p>
+                        <div className="auth-eyebrow">
+                            {isArabic
+                                ? "إدارة مالية شخصية"
+                                : "PERSONAL FINANCE MANAGEMENT"}
+                        </div>
+
+                        <h1>{text.welcomeTitle}</h1>
+
+                        <p>{text.welcomeDescription}</p>
                     </div>
+
                     <div className="auth-feature-list">
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "صلاحيات وتحكم مركزي" : "Centralized access control"}</span>
+                            <span>{text.featureOne}</span>
                         </div>
+
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "دورة موافقات للعمليات والحسابات" : "Approval workflows for operations and accounts"}</span>
+                            <span>{text.featureTwo}</span>
                         </div>
+
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "سجل تدقيق ومتابعة للأنشطة" : "Audit trail and activity tracking"}</span>
+                            <span>{text.featureThree}</span>
                         </div>
                     </div>
                 </section>
@@ -140,97 +252,145 @@ function Login() {
                 <section className="auth-form-panel">
                     <div className="auth-form-header">
                         <span className="auth-form-kicker">
-                            {language === "ar" ? "بوابة الدخول" : "SECURE ACCESS"}
+                            {text.accessKicker}
                         </span>
-                        <h2>{t("auth.login")}</h2>
-                        <p>
-                            {language === "ar"
-                                ? "أدخل بيانات حسابك للوصول إلى النظام."
-                                : "Enter your account credentials to access the system."}
-                        </p>
+
+                        <h2>{text.access}</h2>
+
+                        <p>{text.description}</p>
                     </div>
 
                     {error && (
-                        <div className="auth-alert auth-alert-error" role="alert">
+                        <div
+                            className="auth-alert auth-alert-error"
+                            role="alert"
+                        >
                             <span className="auth-alert-icon">!</span>
                             <span>{error}</span>
                         </div>
                     )}
 
-                    <form onSubmit={handleLogin}>
+                    <form onSubmit={handleLogin} noValidate>
                         <div className="auth-field">
-                            <label htmlFor="login-email">{t("auth.email")}</label>
+                            <label htmlFor="login-email">
+                                {t("auth.email")}
+                            </label>
+
                             <input
                                 id="login-email"
                                 type="email"
                                 value={form.email}
-                                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                onChange={(event) =>
+                                    updateField(
+                                        "email",
+                                        event.target.value
+                                    )
+                                }
                                 autoComplete="email"
-                                placeholder="name@example.com"
-                                required
+                                placeholder={
+                                    isArabic
+                                        ? "name@example.com"
+                                        : "name@example.com"
+                                }
                                 disabled={loading}
+                                required
                             />
                         </div>
 
                         <div className="auth-field">
                             <div className="auth-field-header">
-                                <label htmlFor="login-password">{t("auth.password")}</label>
-                                <Link to="/forgot-password">{t("auth.forgotPassword")}</Link>
+                                <label htmlFor="login-password">
+                                    {t("auth.password")}
+                                </label>
+
+                                <Link to="/forgot-password">
+                                    {t("auth.forgotPassword")}
+                                </Link>
                             </div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                padding: '2px',
-                                background: '#fff',
-                                transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out'
-                            }}>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    border: "1px solid #ced4da",
+                                    borderRadius: "4px",
+                                    padding: "2px",
+                                    background: "#fff",
+                                }}
+                            >
                                 <input
                                     id="login-password"
-                                    type={showPassword ? "text" : "password"}
+                                    type={
+                                        showPassword
+                                            ? "text"
+                                            : "password"
+                                    }
                                     value={form.password}
-                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "password",
+                                            event.target.value
+                                        )
+                                    }
                                     autoComplete="current-password"
-                                    required
                                     disabled={loading}
+                                    required
                                     style={{
                                         flex: 1,
-                                        border: 'none',
-                                        outline: 'none',
-                                        padding: '8px',
-                                        background: 'transparent',
-                                        fontSize: '14px'
+                                        border: "none",
+                                        outline: "none",
+                                        padding: "8px",
+                                        background: "transparent",
+                                        fontSize: "14px",
                                     }}
                                 />
+
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() =>
+                                        setShowPassword((current) => !current)
+                                    }
+                                    disabled={loading}
+                                    aria-label={
+                                        showPassword
+                                            ? isArabic
+                                                ? "إخفاء كلمة المرور"
+                                                : "Hide password"
+                                            : isArabic
+                                              ? "إظهار كلمة المرور"
+                                              : "Show password"
+                                    }
                                     style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '8px 10px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#6c757d',
-                                        transition: 'color 0.2s'
+                                        background: "none",
+                                        border: "none",
+                                        cursor: loading
+                                            ? "not-allowed"
+                                            : "pointer",
+                                        padding: "8px 10px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "#6c757d",
                                     }}
-                                    tabIndex="-1"
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {showPassword ? <EyeOpen /> : <EyeClosed />}
+                                    {showPassword ? (
+                                        <EyeOpen />
+                                    ) : (
+                                        <EyeClosed />
+                                    )}
                                 </button>
                             </div>
                         </div>
 
-                        <button type="submit" className="auth-submit" disabled={loading}>
+                        <button
+                            type="submit"
+                            className="auth-submit"
+                            disabled={loading}
+                        >
                             {loading ? (
                                 <span className="auth-button-loading">
                                     <span className="auth-spinner" />
-                                    {language === "ar" ? "جارٍ تسجيل الدخول..." : "Signing in..."}
+                                    {text.signInLoading}
                                 </span>
                             ) : (
                                 t("auth.signIn")
@@ -238,27 +398,31 @@ function Login() {
                         </button>
                     </form>
 
-                    <div className="auth-separator"><span>{language === "ar" ? "أو" : "OR"}</span></div>
+                    <div className="auth-separator">
+                        <span>{text.or}</span>
+                    </div>
 
                     <div className="auth-register-box">
                         <div>
                             <strong>{t("auth.noAccount")}</strong>
-                            <span>{language === "ar" ? "يمكنك تقديم طلب إنشاء حساب جديد." : "Submit a request to create a new account."}</span>
+                            <span>{text.createDescription}</span>
                         </div>
-                        <Link to="/register" className="auth-secondary-button">{t("auth.createAccount")}</Link>
+
+                        <Link
+                            to="/register"
+                            className="auth-secondary-button"
+                        >
+                            {t("auth.createAccount")}
+                        </Link>
                     </div>
 
                     <div className="auth-security-note">
-                        <span className="auth-security-icon">🔒</span>
-                        <span>
-                            {language === "ar"
-                                ? "الوصول إلى النظام خاضع للصلاحيات والموافقات الإدارية."
-                                : "System access is governed by roles, permissions and administrator approval."}
-                        </span>
+                        <span className="auth-security-icon">✓</span>
+
+                        <span>{text.security}</span>
                     </div>
                 </section>
             </div>
-            
         </div>
     );
 }

@@ -1,1067 +1,404 @@
 /* ============================================================
-   1. المتغيرات العامة (Light Mode)
+   Global Design System
    ============================================================ */
+
 :root {
     --color-primary: #2563eb;
     --color-primary-dark: #1d4ed8;
+
     --color-success: #22c55e;
     --color-danger: #ef4444;
     --color-warning: #f59e0b;
-    --color-text-dark: #0f172a;
-    --color-text-muted: #64748b;
-    --color-border: #e9edf2;
-    --color-bg-light: #f4f6f9;
-    --color-bg-white: #ffffff;
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
-    --radius-card: 16px;
-    --radius-btn: 10px;
 
-    /* متغيرات الوضع الفاتح */
-    --bg-app: #f4f6f9;
+    --bg-app: #f6f7fb;
     --bg-surface: #ffffff;
     --bg-card: #ffffff;
     --bg-input: #ffffff;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --border-color: #e9edf2;
-    --shadow-color: rgba(0, 0, 0, 0.04);
-    --hover-bg: #f8fafc;
-    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+    --text-primary: #172033;
+    --text-secondary: #596579;
+    --text-muted: #929caf;
+
+    --border-color: #e8ebf0;
+
+    --hover-bg: #f5f7fa;
+
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.10);
+
+    --card-shadow: var(--shadow-sm);
+
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+
+    --radius-btn: 10px;
 }
 
 /* ============================================================
-   2. إعادة ضبط الصفحة (html, body, #root)
+   Reset
    ============================================================ */
+
 html,
 body,
-#root,
-.app,
-.layout,
-.app-content {
+#root {
     margin: 0;
     padding: 0;
-    min-height: 100vh;
-    background: var(--bg-app);
-    color: var(--text-primary);
-    transition: background 0.3s ease, color 0.3s ease;
+    min-height: 100%;
+}
+
+html {
+    overflow-x: hidden;
 }
 
 body {
-    font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--bg-app);
+    color: var(--text-primary);
+    font-family:
+        "Inter",
+        "Segoe UI",
+        Roboto,
+        system-ui,
+        -apple-system,
+        sans-serif;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: inherit;
 }
 
 /* ============================================================
-   3. التمرير
+   Scrollbar
    ============================================================ */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd2dc;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aeb8c6;
+}
 
 /* ============================================================
-   4. البطاقات (Cards)
+   Shared Cards
    ============================================================ */
+
+.card,
 .stat-card,
 .financial-card,
-.card,
 .dashboard-panel,
 .data-panel {
     background: var(--bg-card);
-    border-radius: var(--radius-card);
     border: 1px solid var(--border-color);
-    box-shadow: var(--card-shadow);
-    transition: all 0.2s ease-in-out;
-}
-
-.stat-card {
-    min-height: 160px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 16px;
-    text-align: center;
-}
-
-.stat-card:hover,
-.financial-card:hover {
-    box-shadow: 0 8px 20px var(--shadow-color);
-    transform: translateY(-2px);
-    border-color: transparent;
-}
-
-.stat-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    margin-bottom: 12px;
-}
-
-.stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
-}
-
-.stat-label {
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.stat-icon-blue { background: #dbeafe; color: #2563eb; }
-.stat-icon-green { background: #dcfce7; color: #16a34a; }
-.stat-icon-yellow { background: #fef3c7; color: #d97706; }
-.stat-icon-purple { background: #e0e7ff; color: #4f46e5; }
-
-.financial-card {
-    padding: 24px 20px;
-}
-
-.financial-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-weight: 500;
-}
-
-.financial-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 6px 0;
-}
-
-.financial-description {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.financial-card-income { border-left: 4px solid var(--color-success); }
-.financial-card-expense { border-left: 4px solid var(--color-danger); }
-.financial-card-net { border-left: 4px solid var(--color-primary); }
-
-/* ============================================================
-   5. الجداول وشريط الأدوات
-   ============================================================ */
-.table-wrapper {
-    overflow-x: auto;
-    border-radius: var(--radius-card);
-    border: 1px solid var(--border-color);
-    background: var(--bg-card);
-}
-
-.system-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: var(--radius-card);
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-    border: 1px solid var(--border-color);
-}
-
-.system-table thead th {
-    background: var(--bg-surface);
-    padding: 14px 20px;
-    font-weight: 600;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--text-secondary);
-    border-bottom: 2px solid var(--border-color);
-    text-align: center;
-}
-
-.system-table tbody td {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary);
-    vertical-align: middle;
-    text-align: center;
-}
-
-.system-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, 0.02); }
-.system-table tbody tr:nth-child(odd) { background: var(--bg-card); }
-.system-table tbody tr:hover { background: var(--hover-bg) !important; cursor: pointer; }
-
-.management-toolbar {
-    background: var(--bg-card);
-    border-radius: var(--radius-card);
-    border: 1px solid var(--border-color);
-    padding: 16px 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 24px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--card-shadow);
 }
 
 /* ============================================================
-   6. الأزرار
+   Shared Buttons
    ============================================================ */
+
 .btn {
     border-radius: var(--radius-btn);
-    padding: 10px 24px;
-    font-weight: 600;
     font-size: 13px;
-    transition: all 0.2s ease-in-out;
+    font-weight: 600;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .btn-primary {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: #fff;
+    color: #ffffff;
 }
+
 .btn-primary:hover {
     background: var(--color-primary-dark);
     border-color: var(--color-primary-dark);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .btn-success {
     background: var(--color-success);
     border-color: var(--color-success);
-    color: #fff;
-}
-.btn-success:hover {
-    background: #16a34a;
-    border-color: #16a34a;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+    color: #ffffff;
 }
 
 .btn-danger {
     background: var(--color-danger);
     border-color: var(--color-danger);
-    color: #fff;
-}
-.btn-danger:hover {
-    background: #dc2626;
-    border-color: #dc2626;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    color: #ffffff;
 }
 
-.btn-sm { padding: 6px 14px; font-size: 11px; }
-.btn-link { color: var(--color-primary); text-decoration: none; }
-.btn-link:hover { text-decoration: underline; }
-
-.btn-outline-secondary {
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-    background: transparent;
-}
-.btn-outline-secondary:hover {
-    background: var(--hover-bg);
-    border-color: var(--text-secondary);
-    color: var(--text-primary);
+.btn-sm {
+    font-size: 11px;
 }
 
 /* ============================================================
-   7. المودالات
+   Shared Modal
    ============================================================ */
+
 .system-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    z-index: 1060;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1060;
+
     padding: 20px;
+
+    background: rgba(15, 23, 42, 0.40);
+    backdrop-filter: blur(3px);
 }
 
 .system-modal {
-    background: var(--bg-card);
-    max-width: 540px;
     width: 100%;
-    border-radius: var(--radius-card);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    max-width: 540px;
+
     overflow: hidden;
+
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+
+    box-shadow: var(--shadow-lg);
 }
 
 .system-modal-header {
-    padding: 18px 24px;
-    border-bottom: 1px solid var(--border-color);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+
+    padding: 17px 22px;
+
+    border-bottom: 1px solid var(--border-color);
 }
+
 .system-modal-header h3 {
     margin: 0;
-    font-weight: 600;
-    font-size: 18px;
     color: var(--text-primary);
+    font-size: 17px;
+    font-weight: 700;
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--text-muted);
-}
-.modal-close:hover { color: var(--text-primary); }
+    width: 30px;
+    height: 30px;
 
-.system-modal-body { padding: 24px; }
-
-.system-modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    background: var(--bg-surface);
-}
-
-.modal-button-secondary {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: 500;
-    color: var(--text-primary);
-    cursor: pointer;
-}
-.modal-button-secondary:hover { background: var(--hover-bg); }
-
-/* ============================================================
-   8. الحالات والتبويبات
-   ============================================================ */
-.badge {
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-}
-.bg-success { background: #dcfce7 !important; color: #166534 !important; }
-.bg-danger { background: #fee2e2 !important; color: #991b1b !important; }
-.bg-warning { background: #fef3c7 !important; color: #92400e !important; }
-.bg-light { background: var(--bg-surface) !important; color: var(--text-primary) !important; }
-
-.text-success { color: #16a34a !important; }
-.text-danger { color: #dc2626 !important; }
-.text-warning { color: #d97706 !important; }
-
-.nav-tabs .nav-link { color: var(--text-secondary); }
-.nav-tabs .nav-link.active {
-    color: var(--color-primary);
-    background: var(--bg-card);
-    border-color: var(--border-color);
-    border-bottom-color: transparent;
-}
-.nav-tabs { border-color: var(--border-color); }
-
-/* ============================================================
-   9. أنماط المصادقة (Authentication)
-   ============================================================ */
-.auth-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-    background: radial-gradient(circle at top left, #eff6ff, transparent 35%), var(--bg-app);
-    position: relative;
-}
-
-.auth-language-switcher {
-    position: absolute;
-    top: 24px;
-    inset-inline-end: 28px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.language-button {
-    border: 0;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 4px 5px;
-    transition: color 0.15s ease;
-}
-.language-button:hover,
-.language-button.active { color: var(--color-primary); }
-.language-divider { color: var(--border-color); }
-
-.auth-shell {
-    width: 100%;
-    max-width: 1080px;
-    display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
-    overflow: hidden;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    box-shadow: 0 24px 60px var(--shadow-color);
-}
-
-.auth-brand-panel {
-    position: relative;
-    padding: 46px;
-    background: linear-gradient(145deg, #0f172a 0%, #16233d 55%, #1e3a5f 100%);
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.auth-brand-main {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-}
-.auth-logo {
-    width: 46px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    background: var(--color-primary);
-    color: #fff;
-    font-size: 22px;
-    font-weight: 800;
-}
-.auth-system-name { font-size: 16px; font-weight: 700; }
-.auth-system-subtitle { margin-top: 3px; color: #94a3b8; font-size: 10px; }
-
-.auth-brand-content {
-    max-width: 470px;
-    margin: 54px 0;
-}
-.auth-eyebrow {
-    margin-bottom: 14px;
-    color: #60a5fa;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-}
-.auth-brand-content h1 {
-    margin: 0;
-    font-size: 32px;
-    line-height: 1.25;
-    font-weight: 700;
-    color: #ffffff;
-}
-.auth-brand-content p {
-    margin: 18px 0 0;
-    color: #cbd5e1;
-    font-size: 13px;
-    line-height: 1.8;
-}
-
-.auth-feature-list { display: flex; flex-direction: column; gap: 12px; }
-.auth-feature {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #cbd5e1;
-    font-size: 11px;
-}
-.auth-feature-icon {
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: rgba(37, 99, 235, 0.22);
-    color: #60a5fa;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.auth-form-panel {
-    padding: 46px 42px;
-    background: var(--bg-card);
-}
-
-.auth-form-header { margin-bottom: 25px; }
-.auth-form-kicker {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--color-primary);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-}
-.auth-form-header h2 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 25px;
-    font-weight: 700;
-}
-.auth-form-header p {
-    margin: 7px 0 0;
-    color: var(--text-secondary);
-    font-size: 12px;
-    line-height: 1.6;
-}
-
-.auth-field { margin-bottom: 18px; }
-.auth-field-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 7px;
-}
-.auth-field label {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-}
-.auth-field-header a {
-    color: var(--color-primary);
-    text-decoration: none;
-    font-size: 10px;
-    font-weight: 600;
-}
-.auth-field-header a:hover { text-decoration: underline; }
-
-.auth-field input,
-.auth-field select {
-    width: 100%;
-    padding: 11px 12px;
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.auth-field input:hover,
-.auth-field select:hover { border-color: var(--text-muted); }
-.auth-field input:focus,
-.auth-field select:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
-}
-.auth-field input:disabled,
-.auth-field select:disabled {
-    background: var(--hover-bg);
-    cursor: not-allowed;
-}
-
-.auth-submit {
-    width: 100%;
-    padding: 11px 14px;
-    border: 0;
-    border-radius: 8px;
-    background: var(--color-primary);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-.auth-submit:hover:not(:disabled) {
-    background: var(--color-primary-dark);
-    box-shadow: 0 7px 16px rgba(37, 99, 235, 0.20);
-}
-.auth-submit:active:not(:disabled) { transform: translateY(1px); }
-.auth-submit:disabled { opacity: 0.65; cursor: not-allowed; }
-
-.auth-button-loading {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-}
-.auth-spinner {
-    width: 13px;
-    height: 13px;
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: auth-spin 0.7s linear infinite;
-}
-@keyframes auth-spin { to { transform: rotate(360deg); } }
 
-.auth-alert {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    margin-bottom: 18px;
-    padding: 10px 12px;
+    padding: 0;
+    border: 0;
     border-radius: 8px;
-    font-size: 11px;
-    line-height: 1.5;
-}
-.auth-alert-error {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
-}
-.auth-alert-icon {
-    width: 17px;
-    height: 17px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--color-danger);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-}
 
-.auth-separator {
-    position: relative;
-    margin: 22px 0;
-    text-align: center;
-}
-.auth-separator::before {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    top: 50%;
-    height: 1px;
-    background: var(--border-color);
-}
-.auth-separator span {
-    position: relative;
-    padding: 0 9px;
-    background: var(--bg-card);
+    background: transparent;
     color: var(--text-muted);
-    font-size: 9px;
-    font-weight: 600;
+
+    font-size: 22px;
 }
 
-.auth-register-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    padding: 13px 14px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 9px;
-}
-.auth-register-box > div {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-.auth-register-box strong { color: var(--text-primary); font-size: 10px; }
-.auth-register-box span { color: var(--text-muted); font-size: 9px; }
-
-.auth-secondary-button {
-    flex-shrink: 0;
-    padding: 8px 12px;
-    border: 1px solid #bfdbfe;
-    border-radius: 7px;
-    background: #eff6ff;
-    color: var(--color-primary);
-    text-decoration: none;
-    font-size: 10px;
-    font-weight: 700;
-    transition: background 0.15s ease, border-color 0.15s ease;
-}
-.auth-secondary-button:hover {
-    background: #dbeafe;
-    border-color: #93c5fd;
-}
-
-.auth-security-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-top: 20px;
-    color: var(--text-muted);
-    font-size: 9px;
-    line-height: 1.5;
-}
-.auth-security-icon { flex-shrink: 0; }
-
-@media (max-width: 900px) {
-    .auth-page { padding: 30px 20px; }
-    .auth-shell { max-width: 620px; grid-template-columns: 1fr; }
-    .auth-brand-panel { padding: 30px; }
-    .auth-brand-content { margin: 35px 0; }
-    .auth-brand-content h1 { font-size: 26px; }
-}
-@media (max-width: 560px) {
-    .auth-page { padding: 20px 14px; }
-    .auth-language-switcher { top: 12px; inset-inline-end: 14px; }
-    .auth-shell { border-radius: 14px; }
-    .auth-brand-panel { padding: 24px; }
-    .auth-brand-content { margin: 28px 0; }
-    .auth-brand-content h1 { font-size: 23px; }
-    .auth-form-panel { padding: 28px 22px; }
-    .auth-register-box { flex-direction: column; align-items: flex-start; }
-    .auth-secondary-button { width: 100%; text-align: center; }
-}
-
-/* ============================================================
-   10. الاستجابة العامة
-   ============================================================ */
-.section-spacing { margin-bottom: 32px; }
-.section-spacing-lg { margin-bottom: 48px; }
-.section-spacing-sm { margin-bottom: 16px; }
-
-@media (max-width: 768px) {
-    .stat-value { font-size: 22px; }
-    .financial-value { font-size: 24px; }
-    .stat-card { padding: 16px !important; min-height: 120px; }
-    .system-table { font-size: 13px; }
-    .system-table thead th,
-    .system-table tbody td { padding: 10px 14px; }
-    .management-toolbar { flex-direction: column; align-items: stretch; }
-}
-
-/* ============================================================
-   11. الوضع المظلم (Dark Mode)
-   ============================================================ */
-.dark {
-    /* الخلفيات */
-    --bg-app: #0f172a;
-    --bg-surface: #1e293b;
-    --bg-card: #253247;
-    --bg-input: #1e293b;
-
-    /* النصوص */
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-
-    /* الحدود والظلال */
-    --border-color: rgba(255, 255, 255, 0.04);
-    --shadow-color: rgba(0, 0, 0, 0.4);
-    --hover-bg: #2d3a4f;
-    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* 11.1 توحيد خلفية الجذور والحاويات */
-.dark html,
-.dark body,
-.dark #root,
-.dark .app,
-.dark .layout,
-.dark .app-content,
-.dark .container-fluid,
-.dark .dashboard-page {
-    background: #0f172a !important;
-}
-
-/* 11.2 إزالة البادينج من main */
-.dark main,
-.dark .main-content,
-.dark [class*="main"] {
-    background: #0f172a !important;
-    padding: 0 !important;
-}
-
-/* 11.3 جعل الحاويات الداخلية شفافة */
-.dark .container,
-.dark .row,
-.dark .col {
-    background: transparent !important;
-}
-
-/* 11.4 البطاقات والجداول والأدوات */
-.dark .stat-card,
-.dark .financial-card,
-.dark .card,
-.dark .dashboard-panel,
-.dark .data-panel,
-.dark .management-toolbar,
-.dark .table-wrapper,
-.dark .system-table {
-    background: var(--bg-card) !important;
-    border: none !important;
-    box-shadow: var(--card-shadow) !important;
-}
-
-.dark .system-table thead th {
-    background: var(--bg-surface) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-}
-.dark .system-table tbody td {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
-}
-.dark .system-table tbody tr:hover {
-    background: var(--hover-bg) !important;
-}
-
-/* 11.5 العناوين والنصوص */
-.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
-.dark .h1, .dark .h2, .dark .h3, .dark .h4, .dark .h5, .dark .h6,
-.dark .card-title,
-.dark .dashboard-panel-header h2,
-.dark .dashboard-panel-header .h5,
-.dark .dashboard-panel-header .fw-bold,
-.dark .section-title,
-.dark .auth-form-header h2 {
-    color: var(--text-primary) !important;
-}
-
-.dark .text-muted { color: var(--text-muted) !important; }
-.dark .text-secondary { color: var(--text-secondary) !important; }
-.dark .stat-label { color: var(--text-secondary) !important; }
-.dark .financial-label { color: var(--text-secondary) !important; }
-.dark p, .dark span, .dark div, .dark label,
-.dark .stat-value, .dark .financial-value {
+.modal-close:hover {
+    background: var(--hover-bg);
     color: var(--text-primary);
 }
 
-/* 11.6 المدخلات والأزرار */
-.dark .form-control,
-.dark .form-select {
-    background: var(--bg-input) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    color: var(--text-primary) !important;
-}
-.dark .form-control::placeholder { color: var(--text-muted) !important; }
-.dark .form-control:focus,
-.dark .form-select:focus {
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+.system-modal-body {
+    padding: 22px;
 }
 
-.dark .btn-outline-secondary {
-    border-color: rgba(255, 255, 255, 0.1) !important;
+.system-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+
+    padding: 15px 22px;
+
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-button-secondary {
+    padding: 8px 15px;
+
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+
+    background: transparent;
+    color: var(--text-secondary);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.modal-button-secondary:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+/* ============================================================
+   Shared Badges
+   ============================================================ */
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.bg-success {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+}
+
+.bg-danger {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+.bg-warning {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+}
+
+.bg-light {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.text-success {
+    color: #16a34a !important;
+}
+
+.text-danger {
+    color: #dc2626 !important;
+}
+
+.text-warning {
+    color: #d97706 !important;
+}
+
+/* ============================================================
+   Shared Spacing
+   ============================================================ */
+
+.section-spacing {
+    margin-bottom: 32px;
+}
+
+.section-spacing-lg {
+    margin-bottom: 48px;
+}
+
+.section-spacing-sm {
+    margin-bottom: 16px;
+}
+
+/* ============================================================
+   Dark Mode
+   ============================================================ */
+
+.dark {
+    --bg-app: #101722;
+    --bg-surface: #192231;
+    --bg-card: #202c3d;
+    --bg-input: #192231;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #a8b3c3;
+    --text-muted: #738097;
+
+    --border-color: rgba(255, 255, 255, 0.06);
+
+    --hover-bg: #293649;
+
+    --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.dark body {
+    background: var(--bg-app);
+    color: var(--text-primary);
+}
+
+.dark .text-muted {
+    color: var(--text-muted) !important;
+}
+
+.dark .text-secondary {
     color: var(--text-secondary) !important;
 }
-.dark .btn-outline-secondary:hover {
-    background: var(--hover-bg) !important;
-    color: var(--text-primary) !important;
-}
 
-/* 11.7 المودالات */
 .dark .system-modal {
-    background: var(--bg-card) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.06);
 }
-.dark .system-modal-header,
+
 .dark .system-modal-footer {
-    background: var(--bg-surface) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
+    background: var(--bg-surface);
 }
-.dark .modal-close { color: var(--text-muted) !important; }
-.dark .modal-close:hover { color: var(--text-primary) !important; }
+
 .dark .modal-button-secondary {
-    background: var(--bg-surface) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    color: var(--text-primary) !important;
-}
-.dark .modal-button-secondary:hover { background: var(--hover-bg) !important; }
-
-/* 11.8 الرسوم البيانية */
-.dark .recharts-wrapper .recharts-text { fill: var(--text-secondary) !important; }
-.dark .recharts-legend-item-text { color: var(--text-secondary) !important; }
-.dark .recharts-tooltip-wrapper .recharts-tooltip-item { color: #0f172a !important; }
-
-/* 11.9 الروابط والتبويبات */
-.dark a:not(.btn):not(.nav-link):not(.sidebar-link) { color: #60a5fa !important; }
-.dark a:not(.btn):not(.nav-link):not(.sidebar-link):hover { color: #93bbfc !important; }
-
-.dark .nav-tabs .nav-link { color: var(--text-secondary) !important; }
-.dark .nav-tabs .nav-link.active {
-    color: var(--color-primary) !important;
-    background: var(--bg-card) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
-}
-.dark .nav-tabs { border-color: rgba(255, 255, 255, 0.05) !important; }
-
-/* 11.10 السايد بار */
-.dark .sidebar-wrapper .sidebar-link { color: #94a3b8 !important; }
-.dark .sidebar-wrapper .sidebar-link:hover {
-    background: var(--hover-bg) !important;
-    color: #fff !important;
-}
-.dark .sidebar-wrapper .sidebar-link.active {
-    background: var(--color-primary) !important;
-    color: #fff !important;
+    color: var(--text-primary);
 }
 
-/* 11.11 إصلاحات إضافية */
-.dark .financial-card-income,
-.dark .financial-card-expense,
-.dark .financial-card-net { border-left: none !important; }
-.dark hr { border-color: rgba(255, 255, 255, 0.05) !important; }
-.dark .badge.bg-light {
-    background: var(--bg-surface) !important;
-    color: var(--text-primary) !important;
-}
-.dark .dashboard-view-link { color: #60a5fa !important; }
-.dark .dashboard-view-link:hover { color: #93bbfc !important; }
-
-/* 11.12 إصلاح رأس لوحة "آخر العمليات" */
-.dark .dashboard-panel .dashboard-panel-header {
-    background-color: #1e293b !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-.dark .dashboard-panel .dashboard-panel-header h2,
-.dark .dashboard-panel .dashboard-panel-header .h5,
-.dark .dashboard-panel .dashboard-panel-header .fw-bold {
-    color: #f1f5f9 !important;
-}
-.dark .dashboard-panel .dashboard-panel-header .text-muted,
-.dark .dashboard-panel .dashboard-panel-header p {
-    color: #94a3b8 !important;
-}
-.dark .dashboard-panel .dashboard-panel-header a,
-.dark .dashboard-panel .dashboard-panel-header .btn-link {
-    color: #60a5fa !important;
-}
-.dark .dashboard-panel .dashboard-panel-header a:hover {
-    color: #93bbfc !important;
-}
-
-/* 11.13 إشعارات react-toastify */
 .dark .Toastify__toast {
-    background: #1e293b !important;
+    background: #1b2737 !important;
     color: #f1f5f9 !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-}
-.dark .Toastify__toast-body { color: #f1f5f9 !important; }
-.dark .Toastify__close-button { color: #94a3b8 !important; }
-.dark .Toastify__close-button:hover { color: #f1f5f9 !important; }
-.dark .Toastify__progress-bar { background: #2563eb !important; }
-
-.dark .Toastify__toast--success {
-    background: #065f46 !important;
-    border-color: #10b981 !important;
-}
-.dark .Toastify__toast--error {
-    background: #7f1d1d !important;
-    border-color: #ef4444 !important;
-}
-.dark .Toastify__toast--warning {
-    background: #78350f !important;
-    border-color: #f59e0b !important;
-}
-.dark .Toastify__toast--info {
-    background: #1e3a5f !important;
-    border-color: #3b82f6 !important;
-}
-
-/* 11.14 النافبار في الوضع المظلم (حل مشكلة البهتان) */
-.dark .navbar {
-    background: rgba(15, 23, 42, 0.85) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-.dark .navbar.glass,
-.dark .navbar.navbar-glass {
-    background: rgba(15, 23, 42, 0.90) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-}
-.dark .navbar .navbar-brand,
-.dark .navbar .navbar-brand h1,
-.dark .navbar .navbar-brand .brand-text {
-    color: #f1f5f9 !important;
-    font-weight: 700 !important;
-}
-.dark .navbar .navbar-brand small,
-.dark .navbar .navbar-brand .subtitle,
-.dark .navbar .navbar-brand .brand-subtitle {
-    color: #94a3b8 !important;
-}
-.dark .navbar .btn {
-    color: #e2e8f0 !important;
-    transition: all 0.2s ease;
-}
-.dark .navbar .btn:hover {
-    color: #ffffff !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-}
-.dark .navbar .nav-icon { color: #94a3b8 !important; }
-.dark .navbar .nav-icon:hover { color: #f1f5f9 !important; }
-.dark .navbar.fixed-top,
-.dark .navbar.sticky-top {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* ============================================================
-   ضبط التذييل في الأسفل
+   Mobile
    ============================================================ */
 
-/* تأكد من أن العمود الرئيسي يأخذ كامل ارتفاع الشاشة */
-.d-flex.flex-column.flex-grow-1 {
-    min-height: 100vh !important;
-}
+@media (max-width: 768px) {
+    .system-modal-backdrop {
+        padding: 12px;
+    }
 
-/* اجعل المحتوى يتمدد لملء المساحة */
-main.flex-grow-1 {
-    flex: 1 1 auto !important;
-}
+    .system-modal-header {
+        padding: 15px 18px;
+    }
 
-/* التذييل لا ينكمش ويبقى في الأسفل */
-footer {
-    flex-shrink: 0 !important;
-    width: 100% !important;
-    margin-top: auto !important;
-}
+    .system-modal-body {
+        padding: 18px;
+    }
 
-/* ============================================================
-   إصلاح لون النص في حقول الإدخال (تسجيل الدخول - الوضع المظلم)
-   ============================================================ */
-
-.dark .auth-field input,
-.dark .auth-field input:focus {
-    color: #0f172a !important; /* لون غامق للتباين */
-    background: #ffffff !important; /* خلفية بيضاء للحقل */
-}
-
-.dark .auth-field input::placeholder {
-    color: #94a3b8 !important; /* لون placeholder رمادي */
-}
-
-/* إذا أردت فقط تغيير لون النص دون تغيير الخلفية */
-.dark .auth-field input {
-    color: #898b8f !important; /* رمادي فاتح مقروء */
-}
-
-/* ============================================================
-   إصلاح ظهور Tooltip الرسوم البيانية في الوضع المظلم
-   ============================================================ */
-
-.dark .recharts-default-tooltip {
-    background: #1e293b !important;   /* خلفية داكنة */
-    border-color: #334155 !important;  /* حدود خفيفة */
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-}
-
-.dark .recharts-tooltip-label {
-    color: #f1f5f9 !important;         /* لون النص الأساسي أبيض فاتح */
-}
-
-.dark .recharts-tooltip-item {
-    color: #f1f5f9 !important;         /* لون كل عنصر أبيض فاتح */
-}
-
-.dark .recharts-tooltip-item-list {
-    color: #f1f5f9 !important;
-}
-
-/* إذا أردت تغيير لون الخلفية لكل عنصر على حدة (اختياري) */
-.dark .recharts-tooltip-item-name {
-    color: #94a3b8 !important;
-}
-
-.dark .recharts-tooltip-item-value {
-    color: #f1f5f9 !important;
+    .system-modal-footer {
+        padding: 13px 18px;
+    }
 }

@@ -1,461 +1,677 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
-import { useSettings } from "../../context/SettingsContext";
-import api from "../../api/axios";
+import categoryService from "../../services/categoryService";
 import { toast } from "react-toastify";
 
-function OperationForm({ customers = [], onSave, onCancel, operation = null, onCustomerAdded }) {
+const getToday = () => {
+    return new Date().toISOString().split("T")[0];
+};
+
+function OperationForm({
+    onSave,
+    onCancel,
+    operation = null,
+}) {
     const { language } = useLanguage();
-    const { settings } = useSettings();
 
     const [formData, setFormData] = useState({
-        customer_id: "",
-        type: "receipt",
+        type: "income",
         amount: "",
-        description: "",
         category_id: "",
-        category_name: "",
-        sub_category_id: "",
-        sub_category_name: "",
+        operation_date: getToday(),
+        description: "",
     });
-    const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState([]);
-    const [showCustomerModal, setShowCustomerModal] = useState(false);
-    const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" });
-    const [addingCustomer, setAddingCustomer] = useState(false);
 
-    const categoryDebounceTimer = useRef(null);
-    const subCategoryDebounceTimer = useRef(null);
+    const [mainCategories, setMainCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState([]);
+    const [selectedSubCategoryId, setSelectedSubCategoryId] =
+        useState("");
+
+    const [loadingCategories, setLoadingCategories] =
+        useState(false);
+    const [loadingSubCategories, setLoadingSubCategories] =
+        useState(false);
+    const [saving, setSaving] = useState(false);
 
     const t = {
         ar: {
-            customer: "العميل",
-            selectCustomer: "اختر عميلاً",
-            addCustomer: "إضافة عميل جديد",
-            type: "النوع",
-            receipt: "قبض (دخل)",
-            payment: "دفع (خرج)",
-            amount: "المبلغ",
-            description: "الوصف (اختياري)",
-            category: "التصنيف الأساسي",
-            selectCategory: "اكتب أو اختر تصنيفاً أساسياً",
+            titleCreate: "أضف عملية مالية",
+            titleEdit: "عدّل العملية المالية",
+
+            type: "ماذا سجّلت؟",
+
+            income: "دخل",
+            expense: "مصروف",
+
+            amount: "كم المبلغ؟",
+
+            mainCategory: "التصنيف الرئيسي",
+
+            selectMainCategory:
+                "اختر التصنيف المناسب",
+
             subCategory: "التصنيف الفرعي",
-            selectSubCategory: "اكتب أو اختر تصنيفاً فرعياً (اختياري)",
-            save: "حفظ",
+
+            noSubCategory:
+                "لا يوجد تصنيف فرعي لهذا الاختيار",
+
+            selectSubCategory:
+                "اختر التصنيف الفرعي",
+
+            date: "متى حدثت العملية؟",
+
+            description: "ملاحظات",
+            
+            descriptionPlaceholder:
+                "اكتب ملاحظة تساعدك على تذكّر هذه العملية (اختياري)",
+
+            save: "حفظ العملية",
+            update: "حفظ التعديلات",
+
             cancel: "إلغاء",
-            saving: "جارٍ الحفظ...",
-            newCustomerTitle: "إضافة عميل جديد",
-            name: "الاسم",
-            phone: "رقم الهاتف",
-            email: "البريد الإلكتروني",
-            successCustomer: "تم إضافة العميل بنجاح",
-            errorCustomer: "فشل إضافة العميل",
-            errorNameRequired: "الاسم مطلوب",
+
+            saving: "جارٍ حفظ العملية...",
+
+            amountRequired:
+                "أدخل مبلغًا صحيحًا أكبر من صفر.",
+
+            categoryRequired:
+                "اختر تصنيفًا للعملية حتى يسهل عليك تنظيم أموالك.",
+
+            dateRequired:
+                "اختر تاريخ حدوث العملية.",
+
+            error:
+                "تعذر تحميل التصنيفات. حاول مرة أخرى.",
+
+            loading:
+                "جارٍ تجهيز التصنيفات...",
+
+            selectCategoryFirst:
+                "اختر التصنيف الرئيسي أولًا.",
         },
+
         en: {
-            customer: "Customer",
-            selectCustomer: "Select a customer",
-            addCustomer: "Add New Customer",
-            type: "Type",
-            receipt: "Receipt (Income)",
-            payment: "Payment (Expense)",
-            amount: "Amount",
-            description: "Description (Optional)",
-            category: "Main Category",
-            selectCategory: "Type or select a main category",
-            subCategory: "Sub Category",
-            selectSubCategory: "Type or select a sub category (Optional)",
-            save: "Save",
+            titleCreate: "Add a financial operation",
+            titleEdit: "Edit financial operation",
+
+            type: "What did you record?",
+
+            income: "Income",
+            expense: "Expense",
+
+            amount: "How much?",
+
+            mainCategory: "Main category",
+
+            selectMainCategory:
+                "Choose the category that fits",
+
+            subCategory: "Subcategory",
+
+            noSubCategory:
+                "There are no subcategories for this choice",
+
+            selectSubCategory:
+                "Choose a subcategory",
+
+            date: "When did it happen?",
+
+            description: "Notes",
+
+            descriptionPlaceholder:
+                "Add a note to help you remember this operation (optional)",
+
+            save: "Save operation",
+            update: "Save changes",
+
             cancel: "Cancel",
-            saving: "Saving...",
-            newCustomerTitle: "Add New Customer",
-            name: "Name",
-            phone: "Phone Number",
-            email: "Email",
-            successCustomer: "Customer added successfully",
-            errorCustomer: "Failed to add customer",
-            errorNameRequired: "Name is required",
+
+            saving: "Saving your operation...",
+
+            amountRequired:
+                "Please enter a valid amount greater than zero.",
+
+            categoryRequired:
+                "Choose a category to help keep your finances organized.",
+
+            dateRequired:
+                "Choose the date when this operation happened.",
+
+            error:
+                "We couldn't load the categories. Please try again.",
+
+            loading:
+                "Getting your categories ready...",
+
+            selectCategoryFirst:
+                "Choose a main category first.",
         },
     };
-    const lang = language === "ar" ? t.ar : t.en;
 
-    const loadCategories = async () => {
+    const lang =
+        language === "ar" ? t.ar : t.en;
+
+    const getCategoryName = (category) => {
+        if (!category) return "";
+
+        return language === "ar"
+            ? category.name_ar
+            : category.name_en;
+    };
+
+    const resetForm = () => {
+        setFormData({
+            type: "income",
+            amount: "",
+            category_id: "",
+            operation_date: getToday(),
+            description: "",
+        });
+
+        setSubCategories([]);
+        setSelectedSubCategoryId("");
+    };
+
+    const loadMainCategories = async (type) => {
+        setLoadingCategories(true);
+
         try {
-            const response = await api.get("/categories");
-            setCategories(response.data || []);
+            const data =
+                await categoryService.getMainCategories(
+                    type
+                );
+
+            setMainCategories(
+                Array.isArray(data) ? data : []
+            );
         } catch (error) {
-            console.error("Error loading categories:", error);
+            console.error(
+                "Error loading main categories:",
+                error
+            );
+
+            setMainCategories([]);
+            toast.error(lang.error);
+        } finally {
+            setLoadingCategories(false);
         }
     };
 
-    useEffect(() => {
-        loadCategories();
-    }, []);
-
-    useEffect(() => {
-        if (operation) {
-            setFormData({
-                customer_id: operation.customer_id || "",
-                type: operation.type || "receipt",
-                amount: operation.amount || "",
-                description: operation.description || "",
-                category_id: operation.category_id || "",
-                category_name: "",
-                sub_category_id: operation.sub_category_id || "",
-                sub_category_name: "",
-            });
+    const loadSubCategories = async (parentId) => {
+        if (!parentId) {
+            setSubCategories([]);
+            return [];
         }
+
+        setLoadingSubCategories(true);
+
+        try {
+            const data =
+                await categoryService.getSubcategories(
+                    parentId
+                );
+
+            const result =
+                Array.isArray(data) ? data : [];
+
+            setSubCategories(result);
+
+            return result;
+        } catch (error) {
+            console.error(
+                "Error loading subcategories:",
+                error
+            );
+
+            setSubCategories([]);
+            toast.error(lang.error);
+
+            return [];
+        } finally {
+            setLoadingSubCategories(false);
+        }
+    };
+
+    // Load main categories whenever the operation type changes.
+    useEffect(() => {
+        loadMainCategories(formData.type);
+    }, [formData.type]);
+
+    // Initialize create/edit mode.
+    useEffect(() => {
+        const initialize = async () => {
+            if (!operation) {
+                resetForm();
+                return;
+            }
+
+            const operationType =
+                operation.type === "expense"
+                    ? "expense"
+                    : "income";
+
+            const operationDate = operation.operation_date
+                ? String(
+                      operation.operation_date
+                  ).slice(0, 10)
+                : getToday();
+
+            const category = operation.category;
+
+            setFormData({
+                type: operationType,
+                amount: operation.amount ?? "",
+                category_id: "",
+                operation_date: operationDate,
+                description:
+                    operation.description ?? "",
+            });
+
+            setSubCategories([]);
+            setSelectedSubCategoryId("");
+
+            if (!category) {
+                return;
+            }
+
+            if (category.parent_id) {
+                const parentId =
+                    String(category.parent_id);
+
+                setFormData((current) => ({
+                    ...current,
+                    type: operationType,
+                    category_id: parentId,
+                }));
+
+                const children =
+                    await loadSubCategories(
+                        category.parent_id
+                    );
+
+                const selectedChildExists =
+                    children.some(
+                        (child) =>
+                            String(child.id) ===
+                            String(category.id)
+                    );
+
+                if (selectedChildExists) {
+                    setSelectedSubCategoryId(
+                        String(category.id)
+                    );
+                }
+            } else {
+                const mainId = String(category.id);
+
+                setFormData((current) => ({
+                    ...current,
+                    type: operationType,
+                    category_id: mainId,
+                }));
+
+                await loadSubCategories(
+                    category.id
+                );
+            }
+        };
+
+        initialize();
     }, [operation]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+    const handleTypeChange = (event) => {
+        const type = event.target.value;
+
+        setFormData((current) => ({
+            ...current,
+            type,
+            category_id: "",
+        }));
+
+        setSubCategories([]);
+        setSelectedSubCategoryId("");
     };
 
-    // ============================================================
-    // دالة التصنيف الأساسي - بدون رسائل منبثقة
-    // ============================================================
-    const handleCategoryInput = (e) => {
-        const value = e.target.value;
-        setFormData((prev) => ({ ...prev, category_name: value, category_id: "" }));
+    const handleMainCategoryChange = async (
+        event
+    ) => {
+        const parentId = event.target.value;
 
-        if (categoryDebounceTimer.current) {
-            clearTimeout(categoryDebounceTimer.current);
-        }
+        setFormData((current) => ({
+            ...current,
+            category_id: parentId,
+        }));
 
-        const existing = categories.find(c => c.name.toLowerCase() === value.toLowerCase() && !c.parent_id);
-        if (existing) {
-            setFormData((prev) => ({ ...prev, category_id: existing.id, category_name: "" }));
+        setSelectedSubCategoryId("");
+
+        if (!parentId) {
+            setSubCategories([]);
             return;
         }
 
-        if (value.length >= 2) {
-            categoryDebounceTimer.current = setTimeout(async () => {
-                try {
-                    const response = await api.post("/categories", {
-                        name: value,
-                        parent_id: null,
-                        type: formData.type || "income",
-                    });
-                    const newCategory = response.data;
-                    setCategories(prev => [...prev, newCategory]);
-                    setFormData((prev) => ({ ...prev, category_id: newCategory.id, category_name: "" }));
-                } catch (error) {
-                    console.error("Error adding category:", error);
-                }
-            }, 500);
-        }
+        await loadSubCategories(parentId);
     };
 
-    // ============================================================
-    // دالة التصنيف الفرعي - بدون رسائل منبثقة
-    // ============================================================
-    const handleSubCategoryInput = (e) => {
-        const value = e.target.value;
-        setFormData((prev) => ({ ...prev, sub_category_name: value, sub_category_id: "" }));
+    const handleSubCategoryChange = (
+        event
+    ) => {
+        setSelectedSubCategoryId(
+            event.target.value
+        );
+    };
 
-        if (subCategoryDebounceTimer.current) {
-            clearTimeout(subCategoryDebounceTimer.current);
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+
+        setFormData((current) => ({
+            ...current,
+            [name]: value,
+        }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        const amount = Number(formData.amount);
+
+        if (
+            !Number.isFinite(amount) ||
+            amount <= 0
+        ) {
+            toast.error(lang.amountRequired);
+            return;
         }
 
         if (!formData.category_id) {
-            if (value.length > 0) {
-                setFormData((prev) => ({ ...prev, sub_category_name: "" }));
-            }
+            toast.error(lang.categoryRequired);
             return;
         }
 
-        const existing = categories.find(c =>
-            c.name.toLowerCase() === value.toLowerCase() &&
-            c.parent_id === parseInt(formData.category_id)
-        );
-        if (existing) {
-            setFormData((prev) => ({ ...prev, sub_category_id: existing.id, sub_category_name: "" }));
+        if (!formData.operation_date) {
+            toast.error(lang.dateRequired);
             return;
         }
 
-        if (value.length >= 2) {
-            subCategoryDebounceTimer.current = setTimeout(async () => {
-                try {
-                    const response = await api.post("/categories", {
-                        name: value,
-                        parent_id: formData.category_id,
-                        type: formData.type || "income",
-                    });
-                    const newCategory = response.data;
-                    setCategories(prev => [...prev, newCategory]);
-                    setFormData((prev) => ({ ...prev, sub_category_id: newCategory.id, sub_category_name: "" }));
-                } catch (error) {
-                    console.error("Error adding sub category:", error);
-                }
-            }, 500);
-        }
-    };
+        const finalCategoryId =
+            selectedSubCategoryId ||
+            formData.category_id;
 
-    const getSubCategories = () => {
-        if (!formData.category_id) return [];
-        return categories.filter(c => c.parent_id === parseInt(formData.category_id));
-    };
+        setSaving(true);
 
-    // ============================================================
-    // دالة الحفظ الأساسية - تستخدم auto_approve من الإعدادات
-    // ============================================================
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!formData.customer_id) {
-            toast.error(lang.selectCustomer);
-            return;
-        }
-        if (!formData.amount || parseFloat(formData.amount) <= 0) {
-            toast.error("المبلغ يجب أن يكون أكبر من صفر");
-            return;
-        }
-        setLoading(true);
         try {
-            const dataToSend = {
-                ...formData,
-                category_id: formData.category_id || null,
-                sub_category_id: formData.sub_category_id || null,
-                status: settings.auto_approve ? "approved" : "pending",
-            };
-            await onSave(dataToSend);
-            setFormData({
-                customer_id: "",
-                type: "receipt",
-                amount: "",
-                description: "",
-                category_id: "",
-                category_name: "",
-                sub_category_id: "",
-                sub_category_name: "",
+            await onSave({
+                type: formData.type,
+                amount,
+                category_id:
+                    Number(finalCategoryId),
+                operation_date:
+                    formData.operation_date,
+                description:
+                    formData.description.trim() ||
+                    null,
             });
         } catch (error) {
-            console.error(error);
+            // Parent component handles the API error
+            // and displays the appropriate toast.
+            console.error(
+                "Error saving operation:",
+                error
+            );
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
-    // ============================================================
-    // دوال العميل
-    // ============================================================
-    const handleNewCustomerChange = (e) => {
-        const { name, value } = e.target;
-        setNewCustomer((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleAddCustomer = async () => {
-        if (!newCustomer.name.trim()) {
-            toast.error(lang.errorNameRequired);
-            return;
-        }
-        setAddingCustomer(true);
-        try {
-            await api.post("/customers", newCustomer);
-            toast.success(lang.successCustomer);
-            setShowCustomerModal(false);
-            setNewCustomer({ name: "", phone: "", email: "" });
-            if (onCustomerAdded) await onCustomerAdded();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || lang.errorCustomer);
-        } finally {
-            setAddingCustomer(false);
-        }
-    };
+    const selectedMainCategory =
+        mainCategories.find(
+            (category) =>
+                String(category.id) ===
+                String(formData.category_id)
+        );
 
     return (
-        <>
-            <div className="card p-3 mb-4">
-                <form onSubmit={handleSubmit}>
-                    <div className="row g-3">
-                        <div className="col-md-6">
-                            <label className="form-label">{lang.customer}</label>
-                            <div className="d-flex gap-2">
-                                <select
-                                    className="form-select"
-                                    name="customer_id"
-                                    value={formData.customer_id}
-                                    onChange={handleChange}
-                                    required
-                                    disabled={loading}
-                                >
-                                    <option value="">{lang.selectCustomer}</option>
-                                    {customers.map((customer) => (
-                                        <option key={customer.id} value={customer.id}>
-                                            {customer.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-primary"
-                                    onClick={() => setShowCustomerModal(true)}
-                                    disabled={loading}
-                                    style={{ whiteSpace: "nowrap" }}
-                                >
-                                    + {lang.addCustomer}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="col-md-6">
-                            <label className="form-label">{lang.type}</label>
-                            <select
-                                className="form-select"
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                disabled={loading}
-                            >
-                                <option value="receipt">{lang.receipt}</option>
-                                <option value="payment">{lang.payment}</option>
-                            </select>
-                        </div>
-
-                        <div className="col-md-6">
-                            <label className="form-label">{lang.amount}</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                className="form-control"
-                                name="amount"
-                                value={formData.amount}
-                                onChange={handleChange}
-                                required
-                                disabled={loading}
-                                placeholder="0.00"
-                            />
-                        </div>
-
-                        <div className="col-md-6">
-                            <label className="form-label">{lang.category}</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                list="category-list"
-                                value={formData.category_name || categories.find(c => c.id === parseInt(formData.category_id))?.name || ""}
-                                onChange={handleCategoryInput}
-                                placeholder={lang.selectCategory}
-                                disabled={loading}
-                                autoComplete="off"
-                            />
-                            <datalist id="category-list">
-                                {categories.filter(c => !c.parent_id).map((cat) => (
-                                    <option key={cat.id} value={cat.name} />
-                                ))}
-                            </datalist>
-                        </div>
-
-                        {formData.category_id && (
-                            <div className="col-md-6">
-                                <label className="form-label">{lang.subCategory}</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    list="sub-category-list"
-                                    value={formData.sub_category_name || categories.find(c => c.id === parseInt(formData.sub_category_id))?.name || ""}
-                                    onChange={handleSubCategoryInput}
-                                    placeholder={lang.selectSubCategory}
-                                    disabled={loading || !formData.category_id}
-                                    autoComplete="off"
-                                />
-                                <datalist id="sub-category-list">
-                                    {getSubCategories().map((sub) => (
-                                        <option key={sub.id} value={sub.name} />
-                                    ))}
-                                </datalist>
-                            </div>
-                        )}
-
-                        <div className="col-12">
-                            <label className="form-label">{lang.description}</label>
-                            <textarea
-                                className="form-control"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                rows="2"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className="col-12 d-flex gap-2">
-                            <button type="submit" className="btn btn-primary" disabled={loading}>
-                                {loading ? lang.saving : lang.save}
-                            </button>
-                            <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={loading}>
-                                {lang.cancel}
-                            </button>
-                        </div>
-                    </div>
-                </form>
+        <div className="card p-3 p-md-4 mb-4">
+            <div className="mb-4">
+                <h5 className="mb-1">
+                    {operation
+                        ? lang.titleEdit
+                        : lang.titleCreate}
+                </h5>
             </div>
 
-            {showCustomerModal && (
-                <div className="system-modal-backdrop">
-                    <div className="system-modal" style={{ maxWidth: "450px" }}>
-                        <div className="system-modal-header">
-                            <h3>{lang.newCustomerTitle}</h3>
-                            <button className="modal-close" onClick={() => setShowCustomerModal(false)}>×</button>
-                        </div>
-                        <div className="system-modal-body">
-                            <div className="mb-3">
-                                <label className="form-label">{lang.name} *</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="name"
-                                    value={newCustomer.name}
-                                    onChange={handleNewCustomerChange}
-                                    disabled={addingCustomer}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{lang.phone}</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="phone"
-                                    value={newCustomer.phone}
-                                    onChange={handleNewCustomerChange}
-                                    disabled={addingCustomer}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{lang.email}</label>
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    name="email"
-                                    value={newCustomer.email}
-                                    onChange={handleNewCustomerChange}
-                                    disabled={addingCustomer}
-                                />
-                            </div>
-                        </div>
-                        <div className="system-modal-footer">
-                            <button
-                                type="button"
-                                className="modal-button modal-button-secondary"
-                                onClick={() => setShowCustomerModal(false)}
-                                disabled={addingCustomer}
-                            >
-                                {lang.cancel}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleAddCustomer}
-                                disabled={addingCustomer}
-                            >
-                                {addingCustomer ? lang.saving : lang.save}
-                            </button>
-                        </div>
-                    </div>
+            {loadingCategories && (
+                <div className="text-muted mb-3">
+                    {lang.loading}
                 </div>
             )}
-        </>
+
+            <form onSubmit={handleSubmit}>
+                <div className="row g-3">
+                    {/* Type */}
+                    <div className="col-md-6">
+                        <label className="form-label">
+                            {lang.type}
+                        </label>
+
+                        <select
+                            className="form-select"
+                            value={formData.type}
+                            onChange={
+                                handleTypeChange
+                            }
+                            disabled={
+                                saving ||
+                                loadingCategories
+                            }
+                        >
+                            <option value="income">
+                                {lang.income}
+                            </option>
+
+                            <option value="expense">
+                                {lang.expense}
+                            </option>
+                        </select>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="col-md-6">
+                        <label className="form-label">
+                            {lang.amount}
+                        </label>
+
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            className="form-control"
+                            name="amount"
+                            value={formData.amount}
+                            onChange={handleChange}
+                            placeholder="0.00"
+                            required
+                            disabled={saving}
+                        />
+                    </div>
+
+                    {/* Main category */}
+                    <div className="col-md-6">
+                        <label className="form-label">
+                            {lang.mainCategory}
+                        </label>
+
+                        <select
+                            className="form-select"
+                            value={
+                                formData.category_id
+                            }
+                            onChange={
+                                handleMainCategoryChange
+                            }
+                            required
+                            disabled={
+                                saving ||
+                                loadingCategories
+                            }
+                        >
+                            <option value="">
+                                {
+                                    lang.selectMainCategory
+                                }
+                            </option>
+
+                            {mainCategories.map(
+                                (category) => (
+                                    <option
+                                        key={category.id}
+                                        value={
+                                            category.id
+                                        }
+                                    >
+                                        {getCategoryName(
+                                            category
+                                        )}
+                                    </option>
+                                )
+                            )}
+                        </select>
+                    </div>
+
+                    {/* Subcategory */}
+                    <div className="col-md-6">
+                        <label className="form-label">
+                            {lang.subCategory}
+                        </label>
+
+                        <select
+                            className="form-select"
+                            value={
+                                selectedSubCategoryId
+                            }
+                            onChange={
+                                handleSubCategoryChange
+                            }
+                            disabled={
+                                saving ||
+                                !formData.category_id ||
+                                loadingSubCategories ||
+                                subCategories.length ===
+                                    0
+                            }
+                        >
+                            <option value="">
+                                {subCategories.length >
+                                0
+                                    ? lang.selectSubCategory
+                                    : lang.noSubCategory}
+                            </option>
+
+                            {subCategories.map(
+                                (category) => (
+                                    <option
+                                        key={category.id}
+                                        value={
+                                            category.id
+                                        }
+                                    >
+                                        {getCategoryName(
+                                            category
+                                        )}
+                                    </option>
+                                )
+                            )}
+                        </select>
+
+                        {!formData.category_id && (
+                            <small className="text-muted d-block mt-1">
+                                {
+                                    lang.selectCategoryFirst
+                                }
+                            </small>
+                        )}
+
+                        {selectedMainCategory &&
+                            subCategories.length ===
+                                0 && (
+                                <small className="text-muted d-block mt-1">
+                                    {
+                                        lang.noSubCategory
+                                    }
+                                </small>
+                            )}
+                    </div>
+
+                    {/* Date */}
+                    <div className="col-md-6">
+                        <label className="form-label">
+                            {lang.date}
+                        </label>
+
+                        <input
+                            type="date"
+                            className="form-control"
+                            name="operation_date"
+                            value={
+                                formData.operation_date
+                            }
+                            onChange={handleChange}
+                            required
+                            disabled={saving}
+                        />
+                    </div>
+
+                    {/* Description */}
+                    <div className="col-12">
+                        <label className="form-label">
+                            {lang.description}
+                        </label>
+
+                        <textarea
+                            className="form-control"
+                            name="description"
+                            rows="3"
+                            maxLength="5000"
+                            value={
+                                formData.description
+                            }
+                            onChange={handleChange}
+                            placeholder={
+                                lang.descriptionPlaceholder
+                            }
+                            disabled={saving}
+                        />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="col-12 d-flex gap-2">
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={
+                                saving ||
+                                loadingCategories
+                            }
+                        >
+                            {saving
+                                ? lang.saving
+                                : operation
+                                  ? lang.update
+                                  : lang.save}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={onCancel}
+                            disabled={saving}
+                        >
+                            {lang.cancel}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     );
 }
 

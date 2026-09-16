@@ -4,14 +4,15 @@ import Navbar from "./Navbar";
 
 function Layout() {
     return (
-        <div className="d-flex" style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
+        <div className="personal-layout">
             <Sidebar />
-            <div className="d-flex flex-column flex-grow-1" style={{ minWidth: 0, minHeight: "100vh" }}>
+
+            <div className="personal-layout-main">
                 <Navbar />
-                <main className="flex-grow-1 p-3 p-md-4" style={{ overflowX: "auto", minHeight: "200px" }}>
+
+                <main className="personal-layout-content">
                     <Outlet />
                 </main>
-                {/* ❌ حذف <Footer /> نهائياً */}
             </div>
         </div>
     );

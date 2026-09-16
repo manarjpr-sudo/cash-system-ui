@@ -1,35 +1,51 @@
 import { useSettings } from "../../context/SettingsContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { CURRENCIES } from "../../constants/currencies";
 
-function FormatAmount({ value, showCurrency = true }) {
+function FormatDate({ value }) {
     const { settings } = useSettings();
     const { language } = useLanguage();
 
-    let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
-    const amount = num;
+    if (!value) {
+        return "-";
+    }
 
-    const found = CURRENCIES.find(c => c.code === settings.currency);
-    const defaultCurrency = CURRENCIES.find(c => c.code === 'USD');
-    const currency = found || defaultCurrency;
+    const date = new Date(value);
 
-    const symbol = language === 'ar' ? currency.symbol_ar : currency.symbol_en;
-    const shouldShowCurrency = showCurrency && settings.show_currency_symbol !== false;
+    if (Number.isNaN(date.getTime())) {
+        return "-";
+    }
 
-    const formattedNumber = amount.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+    const dateFormat =
+        settings.date_format || "dd/mm/yyyy";
+
+    const parts = {
+        day: String(date.getDate()).padStart(2, "0"),
+        month: String(date.getMonth() + 1).padStart(2, "0"),
+        year: String(date.getFullYear()),
+    };
+
+    let formattedDate;
+
+    switch (dateFormat) {
+        case "yyyy/mm/dd":
+            formattedDate = `${parts.year}/${parts.month}/${parts.day}`;
+            break;
+
+        case "mm/dd/yyyy":
+            formattedDate = `${parts.month}/${parts.day}/${parts.year}`;
+            break;
+
+        case "dd/mm/yyyy":
+        default:
+            formattedDate = `${parts.day}/${parts.month}/${parts.year}`;
+            break;
+    }
 
     return (
-        <span className="fw-bold">
-            {shouldShowCurrency
-                ? `${formattedNumber} ${symbol}`
-                : formattedNumber
-            }
+        <span>
+            {formattedDate}
         </span>
     );
 }
 
-export default FormatAmount;
+export default FormatDate;

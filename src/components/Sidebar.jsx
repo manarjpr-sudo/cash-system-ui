@@ -1,239 +1,168 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { 
+import {
     FaHome,
-    FaClipboardList,
-    FaUsersCog, 
+    FaExchangeAlt,
+    FaTags,
+    FaChartPie,
     FaCog,
     FaChevronLeft,
-    FaChevronRight
+    FaChevronRight,
 } from "react-icons/fa";
 
 function Sidebar() {
     const { language } = useLanguage();
     const { user } = useContext(AuthContext);
-    
-    // ✅ تأكد من أن المدير يرى كل الروابط
-    const isAdmin = user?.role?.name === 'Admin';
+
+    const isRTL = language === "ar";
 
     const t = {
         ar: {
-            dashboard: "لوحة التحكم",
+            home: "الرئيسية",
             operations: "العمليات",
-            admin: "الإدارة",
-            system: "النظام",
-            brand: "نظام إدارة النقد",
-            brandSub: "إدارة مالية",
+            categories: "التصنيفات",
+            reports: "التقارير",
+            settings: "الإعدادات",
+            brand: "إدارة أموالي",
+            subtitle: "مدير مالي شخصي",
+            menu: "القائمة",
         },
         en: {
-            dashboard: "Dashboard",
+            home: "Home",
             operations: "Operations",
-            admin: "Admin Center",
-            system: "System",
-            brand: "Cash System",
-            brandSub: "Financial Management",
+            categories: "Categories",
+            reports: "Reports",
+            settings: "Settings",
+            brand: "My Finances",
+            subtitle: "Personal Finance",
+            menu: "Menu",
         },
     };
-    const lang = language === "ar" ? t.ar : t.en;
-    const isRTL = language === "ar";
 
-    const [isCollapsed, setIsCollapsed] = useState(() => {
-        const saved = localStorage.getItem('sidebar-collapsed');
-        return saved === 'true';
-    });
+    const lang = isRTL ? t.ar : t.en;
 
-    useEffect(() => {
-        localStorage.setItem('sidebar-collapsed', isCollapsed);
-    }, [isCollapsed]);
-
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
-    };
+    const items = [
+        {
+            to: "/dashboard",
+            label: lang.home,
+            icon: FaHome,
+        },
+        {
+            to: "/operations",
+            label: lang.operations,
+            icon: FaExchangeAlt,
+        },
+        {
+            to: "/categories",
+            label: lang.categories,
+            icon: FaTags,
+        },
+        {
+            to: "/reports",
+            label: lang.reports,
+            icon: FaChartPie,
+        },
+    ];
 
     return (
-        <div
-            className="text-white d-flex flex-column flex-shrink-0"
-            style={{
-                width: isCollapsed ? "72px" : "260px",
-                height: "100vh",
-                position: "sticky",
-                top: 0,
-                background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
-                boxShadow: isRTL ? "-2px 0 12px rgba(0,0,0,0.15)" : "2px 0 12px rgba(0,0,0,0.15)",
-                transition: "width 0.25s ease-in-out",
-                overflow: "hidden",
-                direction: isRTL ? "rtl" : "ltr",
-            }}
+        <aside
+            className="finance-sidebar"
+            dir={isRTL ? "rtl" : "ltr"}
         >
-            {/* الشعار مع زر التبديل */}
-            <div
-                className="d-flex align-items-center px-3 py-3"
-                style={{
-                    borderBottom: "1px solid rgba(255,255,255,0.06)",
-                    minHeight: "72px",
-                    justifyContent: isCollapsed ? "center" : "space-between",
-                }}
-            >
-                {!isCollapsed && (
-                    <div className="d-flex align-items-center gap-2">
-                        <span
-                            className="bg-primary rounded-2 d-flex align-items-center justify-content-center"
-                            style={{ width: "36px", height: "36px", fontSize: "18px", fontWeight: "bold", flexShrink: 0 }}
-                        >
-                            $
-                        </span>
-                        <div>
-                            <div className="fw-bold fs-6" style={{ fontSize: "14px" }}>{lang.brand}</div>
-                            <div className="small" style={{ color: "rgba(255,255,255,0.5)", fontSize: "9px" }}>{lang.brandSub}</div>
-                        </div>
-                    </div>
-                )}
-                {isCollapsed && (
-                    <span
-                        className="bg-primary rounded-2 d-flex align-items-center justify-content-center"
-                        style={{ width: "36px", height: "36px", fontSize: "18px", fontWeight: "bold", flexShrink: 0 }}
-                    >
-                        $
-                    </span>
-                )}
-                <button
-                    onClick={toggleSidebar}
-                    className="btn btn-sm border-0"
-                    style={{
-                        padding: "4px 6px",
-                        fontSize: "16px",
-                        opacity: 0.7,
-                        transition: "all 0.2s",
-                        background: "transparent",
-                        color: "#94a3b8",
-                        cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
-                    onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+            <div className="finance-sidebar-brand">
+                <NavLink
+                    to="/dashboard"
+                    className="finance-brand"
                 >
-                    {isCollapsed ? (
-                        isRTL ? <FaChevronLeft size={18} /> : <FaChevronRight size={18} />
+                    <span className="finance-brand-mark">
+                        <span />
+                        <span />
+                        <span />
+                    </span>
+
+                    <span className="finance-brand-copy">
+                        <strong>{lang.brand}</strong>
+                        <small>{lang.subtitle}</small>
+                    </span>
+                </NavLink>
+
+                <button
+                    type="button"
+                    className="finance-sidebar-toggle"
+                    aria-label={lang.menu}
+                >
+                    {isRTL ? (
+                        <FaChevronRight size={10} />
                     ) : (
-                        isRTL ? <FaChevronRight size={18} /> : <FaChevronLeft size={18} />
+                        <FaChevronLeft size={10} />
                     )}
                 </button>
             </div>
 
-            {/* الروابط مع Tooltip عند التصغير */}
-            <nav className="nav nav-pills flex-column px-2 mt-3 gap-1 flex-grow-1">
-                <NavLink
-                    to="/dashboard"
-                    title={isCollapsed ? lang.dashboard : ''}
-                    className={({ isActive }) =>
-                        `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
-                    }
-                    style={{
-                        padding: isCollapsed ? "10px 0" : "10px 14px",
-                        justifyContent: isCollapsed ? "center" : "flex-start",
-                        gap: isCollapsed ? "0" : "12px",
-                        fontSize: isCollapsed ? "0" : "14px",
-                        transition: "all 0.2s",
-                    }}
-                >
-                    <FaHome size={20} />
-                    <span style={{
-                        opacity: isCollapsed ? 0 : 1,
-                        width: isCollapsed ? 0 : "auto",
-                        overflow: "hidden",
-                        transition: "opacity 0.2s, width 0.2s",
-                        whiteSpace: "nowrap",
-                    }}>
-                        {lang.dashboard}
-                    </span>
-                </NavLink>
+            <div className="finance-sidebar-section-title">
+                {lang.menu}
+            </div>
 
-                <NavLink
-                    to="/operations"
-                    title={isCollapsed ? lang.operations : ''}
-                    className={({ isActive }) =>
-                        `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
-                    }
-                    style={{
-                        padding: isCollapsed ? "10px 0" : "10px 14px",
-                        justifyContent: isCollapsed ? "center" : "flex-start",
-                        gap: isCollapsed ? "0" : "12px",
-                        fontSize: isCollapsed ? "0" : "14px",
-                        transition: "all 0.2s",
-                    }}
-                >
-                    <FaClipboardList size={20} />
-                    <span style={{
-                        opacity: isCollapsed ? 0 : 1,
-                        width: isCollapsed ? 0 : "auto",
-                        overflow: "hidden",
-                        transition: "opacity 0.2s, width 0.2s",
-                        whiteSpace: "nowrap",
-                    }}>
-                        {lang.operations}
-                    </span>
-                </NavLink>
-
-                {/* ✅ ADMIN: يظهر دائماً للمدير */}
-                {isAdmin && (
+            <nav className="finance-sidebar-nav">
+                {items.map(({ to, label, icon: Icon }) => (
                     <NavLink
-                        to="/admin"
-                        title={isCollapsed ? lang.admin : ''}
+                        key={to}
+                        to={to}
                         className={({ isActive }) =>
-                            `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
+                            `finance-nav-link ${
+                                isActive ? "active" : ""
+                            }`
                         }
-                        style={{
-                            padding: isCollapsed ? "10px 0" : "10px 14px",
-                            justifyContent: isCollapsed ? "center" : "flex-start",
-                            gap: isCollapsed ? "0" : "12px",
-                            fontSize: isCollapsed ? "0" : "14px",
-                            transition: "all 0.2s",
-                        }}
                     >
-                        <FaUsersCog size={20} />
-                        <span style={{
-                            opacity: isCollapsed ? 0 : 1,
-                            width: isCollapsed ? 0 : "auto",
-                            overflow: "hidden",
-                            transition: "opacity 0.2s, width 0.2s",
-                            whiteSpace: "nowrap",
-                        }}>
-                            {lang.admin}
+                        <span className="finance-nav-icon">
+                            <Icon size={14} />
                         </span>
-                    </NavLink>
-                )}
 
-                {/* ✅ SYSTEM: يظهر دائماً للمدير */}
-                {isAdmin && (
-                    <NavLink
-                        to="/system"
-                        title={isCollapsed ? lang.system : ''}
-                        className={({ isActive }) =>
-                            `nav-link text-white d-flex align-items-center rounded-3 ${isActive ? "active bg-primary" : ""}`
-                        }
-                        style={{
-                            padding: isCollapsed ? "10px 0" : "10px 14px",
-                            justifyContent: isCollapsed ? "center" : "flex-start",
-                            gap: isCollapsed ? "0" : "12px",
-                            fontSize: isCollapsed ? "0" : "14px",
-                            transition: "all 0.2s",
-                        }}
-                    >
-                        <FaCog size={20} />
-                        <span style={{
-                            opacity: isCollapsed ? 0 : 1,
-                            width: isCollapsed ? 0 : "auto",
-                            overflow: "hidden",
-                            transition: "opacity 0.2s, width 0.2s",
-                            whiteSpace: "nowrap",
-                        }}>
-                            {lang.system}
+                        <span className="finance-nav-label">
+                            {label}
                         </span>
+
+                        <span className="finance-nav-active-dot" />
                     </NavLink>
-                )}
+                ))}
             </nav>
-        </div>
+
+            <div className="finance-sidebar-spacer" />
+
+            <div className="finance-sidebar-user">
+                <div className="finance-sidebar-avatar">
+                    {user?.name
+                        ?.charAt(0)
+                        ?.toUpperCase() || "U"}
+                </div>
+
+                <div className="finance-sidebar-user-text">
+                    <strong>
+                        {user?.name || "User"}
+                    </strong>
+
+                    <span>
+                        {isRTL
+                            ? "حساب شخصي"
+                            : "Personal account"}
+                    </span>
+                </div>
+            </div>
+
+            <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                    `finance-settings-link ${
+                        isActive ? "active" : ""
+                    }`
+                }
+            >
+                <FaCog size={13} />
+                <span>{lang.settings}</span>
+            </NavLink>
+        </aside>
     );
 }
 

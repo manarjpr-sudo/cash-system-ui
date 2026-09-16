@@ -1,102 +1,162 @@
-import { useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { FaMoon, FaSun } from "react-icons/fa";
 import LanguageSwitcher from "../components/common/LanguageSwitcher";
+import { authApi } from "../api/axios";
+import { FaMoon, FaSun } from "react-icons/fa";
 
-// SVG Icons
 const EyeOpen = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-        <circle cx="12" cy="12" r="3"/>
+    <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
     </svg>
 );
 
 const EyeClosed = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-        <line x1="1" y1="1" x2="23" y2="23"/>
+    <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+        <path d="M14.83 14.83a3 3 0 1 1-4.24-4.24" />
+        <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
 );
 
 function Register() {
-    const [roles, setRoles] = useState([]);
     const [form, setForm] = useState({
         name: "",
         email: "",
         password: "",
         password_confirmation: "",
-        requested_role_id: "",
     });
-    const [loadingRoles, setLoadingRoles] = useState(true);
+
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const navigate = useNavigate();
+    const { login } = useContext(AuthContext);
     const { t, language } = useLanguage();
     const { isDark, toggleTheme } = useTheme();
 
-    useEffect(() => {
-        loadRoles();
-    }, []);
+    const isArabic = language === "ar";
 
-    const loadRoles = async () => {
-        try {
-            const response = await axios.get("http://127.0.0.1:8000/api/registration-roles");
-            setRoles(response.data);
-        } catch (error) {
-            console.error(error);
-            setError(
-                error.response?.data?.message ||
-                "Unable to load available account types."
-            );
-        } finally {
-            setLoadingRoles(false);
-        }
-    };
+    const text = isArabic
+        ? {
+              kicker: "إنشاء حساب",
+              title: "أنشئ حسابك",
+              description:
+                  "أنشئ حسابًا جديدًا وابدأ مباشرة بإدارة دخلك ومصروفاتك.",
+              welcomeKicker: "إدارة مالية شخصية",
+              welcomeTitle: "ابدأ بتنظيم أموالك بسهولة",
+              welcomeDescription:
+                  "سجّل دخلك ومصروفاتك، نظّم عملياتك حسب التصنيفات، وتابع رصيدك في مكان واحد.",
+              featureOne: "تسجيل الدخل والمصروفات",
+              featureTwo: "تصنيفات رئيسية وفرعية",
+              featureThree: "متابعة الرصيد والعمليات",
+              passwordHint:
+                  "8 أحرف على الأقل، حرف كبير، حرف صغير، ورقم.",
+              create: "إنشاء الحساب",
+              creating: "جارٍ إنشاء الحساب...",
+              haveAccount: "لديك حساب بالفعل؟",
+              registerError:
+                  "تعذر إنشاء الحساب. تحقق من البيانات وحاول مرة أخرى.",
+              passwordMismatch: "كلمتا المرور غير متطابقتين.",
+              security:
+                  "يتم إنشاء الحساب وتفعيله مباشرة بعد نجاح التسجيل.",
+          }
+        : {
+              kicker: "ACCOUNT REGISTRATION",
+              title: "Create your account",
+              description:
+                  "Create an account and start managing your income and expenses.",
+              welcomeKicker: "PERSONAL FINANCE",
+              welcomeTitle: "Start organizing your finances",
+              welcomeDescription:
+                  "Record income and expenses, organize operations by category, and track your balance in one place.",
+              featureOne: "Record income and expenses",
+              featureTwo: "Main and subcategory organization",
+              featureThree: "Track your balance and operations",
+              passwordHint:
+                  "At least 8 characters, one uppercase, one lowercase, and one number.",
+              create: "Create account",
+              creating: "Creating account...",
+              haveAccount: "Already have an account?",
+              registerError:
+                  "Unable to create the account. Please check your information and try again.",
+              passwordMismatch: "Passwords do not match.",
+              security:
+                  "Your account is activated immediately after successful registration.",
+          };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const updateField = (field, value) => {
         setForm((current) => ({
             ...current,
-            [name]: value,
+            [field]: value,
         }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         setError("");
-        setSuccess("");
-        setSubmitting(true);
+
+        if (form.password !== form.password_confirmation) {
+            setError(text.passwordMismatch);
+            return;
+        }
 
         try {
-            const response = await axios.post("http://127.0.0.1:8000/api/register", form);
-            setSuccess(
-                response.data?.message ||
-                (language === "ar"
-                    ? "تم إرسال طلب التسجيل بنجاح."
-                    : "Registration submitted successfully.")
-            );
-            setTimeout(() => {
-                navigate("/registration-pending");
-            }, 900);
-        } catch (error) {
-            console.error(error);
-            const validationErrors = error.response?.data?.errors;
+            setSubmitting(true);
+
+            const response = await authApi.post("/register", {
+                name: form.name.trim(),
+                email: form.email.trim(),
+                password: form.password,
+                password_confirmation: form.password_confirmation,
+            });
+
+            login(response.data);
+
+            navigate("/dashboard", {
+                replace: true,
+            });
+        } catch (requestError) {
+            console.error("Registration error:", requestError);
+
+            const validationErrors = requestError.response?.data?.errors;
+
             if (validationErrors) {
-                const firstError = Object.values(validationErrors).flat().at(0);
-                setError(firstError || "Registration failed.");
+                const firstError = Object.values(validationErrors)
+                    .flat()
+                    .at(0);
+
+                setError(firstError || text.registerError);
             } else {
                 setError(
-                    error.response?.data?.message ||
-                    (language === "ar"
-                        ? "تعذر إرسال طلب التسجيل."
-                        : "Registration failed.")
+                    requestError.response?.data?.message ||
+                        text.registerError
                 );
             }
         } finally {
@@ -105,88 +165,99 @@ function Register() {
     };
 
     const iconButtonStyle = {
-        width: '36px',
-        height: '36px',
-        padding: '0',
-        border: '1px solid #e2e8f0',
-        background: 'transparent',
-        color: '#475569',
-        transition: 'all 0.2s ease',
-        fontSize: '16px',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-        borderRadius: '50%',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
+        width: "36px",
+        height: "36px",
+        padding: 0,
+        border: "1px solid #e2e8f0",
+        background: "transparent",
+        color: "#475569",
+        borderRadius: "50%",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
     };
 
-    const iconButtonHover = {
-        borderColor: '#94a3b8',
-        color: '#0f172a',
-        background: '#f8fafc',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    const passwordInputStyle = {
+        flex: 1,
+        border: "none",
+        outline: "none",
+        padding: "8px",
+        background: "transparent",
+        fontSize: "14px",
     };
 
     return (
-        <div className="min-h-screen d-flex flex-column align-items-center justify-content-center" style={{ background: '#f4f6f9', padding: '30px' }}>
-            {/* شريط اللغة والوضع الليلي */}
-            <div className="w-100 d-flex justify-content-end px-3" style={{ maxWidth: '1080px', marginBottom: '20px', gap: '10px' }}>
+        <div className="auth-page">
+            <div
+                className="auth-language-switcher"
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                }}
+            >
                 <LanguageSwitcher />
+
                 <button
+                    type="button"
                     onClick={toggleTheme}
                     className="btn"
                     style={iconButtonStyle}
-                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                        e.currentTarget.style.color = '#475569';
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
-                    }}
-                    title={isDark ? (language === 'ar' ? 'الوضع الفاتح' : 'Light Mode') : (language === 'ar' ? 'الوضع المظلم' : 'Dark Mode')}
+                    title={
+                        isDark
+                            ? isArabic
+                                ? "الوضع الفاتح"
+                                : "Light mode"
+                            : isArabic
+                              ? "الوضع الداكن"
+                              : "Dark mode"
+                    }
                 >
                     {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
                 </button>
             </div>
 
-            {/* بطاقة التسجيل */}
-            <div className="auth-shell" style={{ maxWidth: '1080px', width: '100%' }}>
+            <div className="auth-shell">
                 <section className="auth-brand-panel">
                     <div className="auth-brand-main">
                         <div className="auth-logo">$</div>
+
                         <div>
-                            <div className="auth-system-name">{t("app.name")}</div>
-                            <div className="auth-system-subtitle">{t("app.subtitle")}</div>
+                            <div className="auth-system-name">
+                                {t("app.name")}
+                            </div>
+
+                            <div className="auth-system-subtitle">
+                                {t("app.subtitle")}
+                            </div>
                         </div>
                     </div>
+
                     <div className="auth-brand-content">
                         <div className="auth-eyebrow">
-                            {language === "ar" ? "طلب إنشاء حساب" : "ACCOUNT REGISTRATION"}
+                            {text.welcomeKicker}
                         </div>
-                        <h1>
-                            {language === "ar"
-                                ? "أنشئ حسابك وابدأ من خلال بيئة مالية منظمة وآمنة."
-                                : "Create your account and join a controlled financial environment."}
-                        </h1>
-                        <p>
-                            {language === "ar"
-                                ? "كل طلب تسجيل يخضع لمراجعة مدير النظام قبل تفعيل الحساب ومنح الصلاحيات."
-                                : "Every registration request is reviewed by an administrator before the account is activated and permissions are assigned."}
-                        </p>
+
+                        <h1>{text.welcomeTitle}</h1>
+
+                        <p>{text.welcomeDescription}</p>
                     </div>
+
                     <div className="auth-feature-list">
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "اختيار نوع الحساب" : "Choose an account type"}</span>
+                            <span>{text.featureOne}</span>
                         </div>
+
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "مراجعة إدارية قبل التفعيل" : "Administrator review before activation"}</span>
+                            <span>{text.featureTwo}</span>
                         </div>
+
                         <div className="auth-feature">
                             <span className="auth-feature-icon">✓</span>
-                            <span>{language === "ar" ? "الصلاحيات تحدد وفق الدور المعتمد" : "Permissions follow the approved role"}</span>
+                            <span>{text.featureThree}</span>
                         </div>
                     </div>
                 </section>
@@ -194,193 +265,219 @@ function Register() {
                 <section className="auth-form-panel">
                     <div className="auth-form-header">
                         <span className="auth-form-kicker">
-                            {language === "ar" ? "تسجيل مستخدم جديد" : "NEW ACCOUNT"}
+                            {text.kicker}
                         </span>
-                        <h2>{t("auth.createYourAccount")}</h2>
-                        <p>
-                            {language === "ar"
-                                ? "أرسل طلبك وسيتم مراجعته من مدير النظام."
-                                : "Submit your request for administrator review."}
-                        </p>
+
+                        <h2>{text.title}</h2>
+
+                        <p>{text.description}</p>
                     </div>
 
                     {error && (
-                        <div className="auth-alert auth-alert-error" role="alert">
+                        <div
+                            className="auth-alert auth-alert-error"
+                            role="alert"
+                        >
                             <span className="auth-alert-icon">!</span>
                             <span>{error}</span>
                         </div>
                     )}
 
-                    {success && (
-                        <div className="auth-alert auth-alert-success" role="status">
-                            {success}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <div className="auth-field">
-                            <label htmlFor="register-name">{t("auth.fullName")}</label>
+                            <label htmlFor="register-name">
+                                {t("auth.fullName")}
+                            </label>
+
                             <input
                                 id="register-name"
                                 type="text"
-                                name="name"
                                 value={form.name}
-                                onChange={handleChange}
-                                required
+                                onChange={(event) =>
+                                    updateField(
+                                        "name",
+                                        event.target.value
+                                    )
+                                }
                                 autoComplete="name"
                                 disabled={submitting}
+                                required
                             />
                         </div>
 
                         <div className="auth-field">
-                            <label htmlFor="register-email">{t("auth.email")}</label>
+                            <label htmlFor="register-email">
+                                {t("auth.email")}
+                            </label>
+
                             <input
                                 id="register-email"
                                 type="email"
-                                name="email"
                                 value={form.email}
-                                onChange={handleChange}
-                                required
+                                onChange={(event) =>
+                                    updateField(
+                                        "email",
+                                        event.target.value
+                                    )
+                                }
                                 autoComplete="email"
                                 disabled={submitting}
+                                required
                             />
                         </div>
 
                         <div className="auth-field">
-                            <label htmlFor="register-role">{t("auth.accountType")}</label>
-                            <select
-                                id="register-role"
-                                name="requested_role_id"
-                                value={form.requested_role_id}
-                                onChange={handleChange}
-                                required
-                                disabled={loadingRoles || submitting}
-                            >
-                                <option value="">
-                                    {loadingRoles
-                                        ? (language === "ar" ? "جارٍ تحميل أنواع الحساب..." : "Loading account types...")
-                                        : (language === "ar" ? "اختر نوع الحساب" : "Select account type")}
-                                </option>
-                                {roles.map((role) => (
-                                    <option key={role.id} value={role.id}>
-                                        {role.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <small>
-                                {language === "ar"
-                                    ? "نوع الحساب الذي تختاره هو طلب فقط، وسيحدد المدير الدور النهائي."
-                                    : "This is only a requested role. The administrator assigns the final role."}
-                            </small>
-                        </div>
+                            <label htmlFor="register-password">
+                                {t("auth.password")}
+                            </label>
 
-                        <div className="auth-field">
-                            <label htmlFor="register-password">{t("auth.password")}</label>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                padding: '2px',
-                                background: '#fff',
-                                transition: 'border-color 0.15s ease-in-out'
-                            }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    border: "1px solid #ced4da",
+                                    borderRadius: "4px",
+                                    padding: "2px",
+                                    background: "#fff",
+                                }}
+                            >
                                 <input
                                     id="register-password"
-                                    type={showPassword ? "text" : "password"}
-                                    name="password"
+                                    type={
+                                        showPassword
+                                            ? "text"
+                                            : "password"
+                                    }
                                     value={form.password}
-                                    onChange={handleChange}
-                                    required
-                                    minLength={8}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "password",
+                                            event.target.value
+                                        )
+                                    }
                                     autoComplete="new-password"
                                     disabled={submitting}
-                                    style={{
-                                        flex: 1,
-                                        border: 'none',
-                                        outline: 'none',
-                                        padding: '8px',
-                                        background: 'transparent',
-                                        fontSize: '14px'
-                                    }}
+                                    required
+                                    minLength={8}
+                                    style={passwordInputStyle}
                                 />
+
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() =>
+                                        setShowPassword(
+                                            (current) => !current
+                                        )
+                                    }
+                                    disabled={submitting}
+                                    aria-label={
+                                        showPassword
+                                            ? isArabic
+                                                ? "إخفاء كلمة المرور"
+                                                : "Hide password"
+                                            : isArabic
+                                              ? "إظهار كلمة المرور"
+                                              : "Show password"
+                                    }
                                     style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '8px 10px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#6c757d',
-                                        transition: 'color 0.2s'
+                                        background: "none",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        padding: "8px 10px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "#6c757d",
                                     }}
-                                    tabIndex="-1"
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {showPassword ? <EyeOpen /> : <EyeClosed />}
+                                    {showPassword ? (
+                                        <EyeOpen />
+                                    ) : (
+                                        <EyeClosed />
+                                    )}
                                 </button>
                             </div>
-                            <small style={{ display: 'block', marginTop: '4px', color: '#6c757d' }}>
-                                {language === "ar"
-                                    ? "يجب أن تحتوي على 8 أحرف على الأقل، حرف كبير، حرف صغير، ورقم."
-                                    : "Must contain at least 8 characters, one uppercase, one lowercase, and one number."}
+
+                            <small
+                                style={{
+                                    display: "block",
+                                    marginTop: "4px",
+                                    color: "#6c757d",
+                                }}
+                            >
+                                {text.passwordHint}
                             </small>
                         </div>
 
                         <div className="auth-field">
-                            <label htmlFor="register-confirm-password">{t("auth.confirmPassword")}</label>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                padding: '2px',
-                                background: '#fff',
-                                transition: 'border-color 0.15s ease-in-out'
-                            }}>
+                            <label htmlFor="register-confirm-password">
+                                {t("auth.confirmPassword")}
+                            </label>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    border: "1px solid #ced4da",
+                                    borderRadius: "4px",
+                                    padding: "2px",
+                                    background: "#fff",
+                                }}
+                            >
                                 <input
                                     id="register-confirm-password"
-                                    type={showConfirm ? "text" : "password"}
-                                    name="password_confirmation"
+                                    type={
+                                        showConfirm
+                                            ? "text"
+                                            : "password"
+                                    }
                                     value={form.password_confirmation}
-                                    onChange={handleChange}
-                                    required
-                                    minLength={8}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "password_confirmation",
+                                            event.target.value
+                                        )
+                                    }
                                     autoComplete="new-password"
                                     disabled={submitting}
-                                    style={{
-                                        flex: 1,
-                                        border: 'none',
-                                        outline: 'none',
-                                        padding: '8px',
-                                        background: 'transparent',
-                                        fontSize: '14px'
-                                    }}
+                                    required
+                                    minLength={8}
+                                    style={passwordInputStyle}
                                 />
+
                                 <button
                                     type="button"
-                                    onClick={() => setShowConfirm(!showConfirm)}
+                                    onClick={() =>
+                                        setShowConfirm(
+                                            (current) => !current
+                                        )
+                                    }
+                                    disabled={submitting}
+                                    aria-label={
+                                        showConfirm
+                                            ? isArabic
+                                                ? "إخفاء كلمة المرور"
+                                                : "Hide password"
+                                            : isArabic
+                                              ? "إظهار كلمة المرور"
+                                              : "Show password"
+                                    }
                                     style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '8px 10px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#6c757d',
-                                        transition: 'color 0.2s'
+                                        background: "none",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        padding: "8px 10px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "#6c757d",
                                     }}
-                                    tabIndex="-1"
-                                    onMouseEnter={(e) => e.currentTarget.style.color = '#343a40'}
-                                    onMouseLeave={(e) => e.currentTarget.style.color = '#6c757d'}
                                 >
-                                    {showConfirm ? <EyeOpen /> : <EyeClosed />}
+                                    {showConfirm ? (
+                                        <EyeOpen />
+                                    ) : (
+                                        <EyeClosed />
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -388,17 +485,20 @@ function Register() {
                         <button
                             type="submit"
                             className="auth-submit"
-                            disabled={submitting || loadingRoles}
+                            disabled={submitting}
                         >
-                            {submitting
-                                ? (language === "ar" ? "جارٍ إرسال الطلب..." : "Submitting...")
-                                : t("auth.createAccount")}
+                            {submitting ? text.creating : text.create}
                         </button>
                     </form>
 
                     <div className="auth-footer">
-                        <span>{t("auth.haveAccount")}</span>{" "}
+                        <span>{text.haveAccount}</span>{" "}
                         <Link to="/login">{t("auth.signIn")}</Link>
+                    </div>
+
+                    <div className="auth-security-note">
+                        <span className="auth-security-icon">✓</span>
+                        <span>{text.security}</span>
                     </div>
                 </section>
             </div>

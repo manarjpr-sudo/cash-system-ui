@@ -1,1126 +1,741 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+import {
+    FaPlus,
+    FaSearch,
+    FaArrowUp,
+    FaArrowDown,
+    FaEdit,
+    FaTrash,
+    FaFileExcel,
+    FaFilePdf,
+} from "react-icons/fa";
+
 import operationService from "../services/operationService";
-import customerService from "../services/customerService";
+import dashboardService from "../services/dashboardService";
 import OperationForm from "../components/operations/OperationForm";
 import TableSkeleton from "../components/common/TableSkeleton";
-import { AuthContext } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
-import { useSettings } from "../context/SettingsContext";
-import api from "../api/axios";
-import { exportToExcel, exportToPDF } from "../utils/exportUtils";
 import FormatAmount from "../components/common/FormatAmount";
 import FormatDate from "../components/common/FormatDate";
-import { FaArrowUp, FaArrowDown } from "react-icons/fa";
 
-// ============================================================
-// مكون العملاء مع إضافة وتعديل وحذف
-// ============================================================
-const CustomersSimple = ({ onCustomerAdded }) => {
-    const { language } = useLanguage();
-    const { hasPermission } = useContext(AuthContext);
-    const { settings } = useSettings();
-    const [customers, setCustomers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [newCustomer, setNewCustomer] = useState({ name: "", phone: "", email: "" });
-    const [adding, setAdding] = useState(false);
+import { useLanguage } from "../context/LanguageContext";
+import { useSettings } from "../context/SettingsContext";
+import { exportToExcel, exportToPDF } from "../utils/exportUtils";
 
-    const [editingCustomer, setEditingCustomer] = useState(null);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editForm, setEditForm] = useState({ name: "", phone: "", email: "" });
-    const [editing, setEditing] = useState(false);
-
-    const [deleteCustomerId, setDeleteCustomerId] = useState(null);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleting, setDeleting] = useState(false);
-
-    const t = language === 'ar'
-        ? {
-            title: 'العملاء',
-            loading: 'جارٍ التحميل...',
-            noData: 'لا يوجد عملاء',
-            add: 'إضافة عميل',
-            edit: 'تعديل',
-            delete: 'حذف',
-            actions: 'الإجراءات',
-            cancel: 'إلغاء',
-            save: 'حفظ',
-            saving: 'جارٍ الحفظ...',
-            deleting: 'جارٍ الحذف...',
-            name: 'الاسم',
-            phone: 'الهاتف',
-            email: 'البريد الإلكتروني',
-            nameRequired: 'الاسم مطلوب',
-            successAdd: 'تم إضافة العميل بنجاح',
-            successEdit: 'تم تحديث العميل بنجاح',
-            successDelete: 'تم حذف العميل بنجاح',
-            error: 'فشل العملية',
-            editTitle: 'تعديل عميل',
-            deleteTitle: 'تأكيد الحذف',
-            deleteConfirm: 'هل أنت متأكد من حذف هذا العميل؟',
-            confirmDelete: 'نعم، حذف',
-        }
-        : {
-            title: 'Customers',
-            loading: 'Loading...',
-            noData: 'No customers found',
-            add: 'Add Customer',
-            edit: 'Edit',
-            delete: 'Delete',
-            actions: 'Actions',
-            cancel: 'Cancel',
-            save: 'Save',
-            saving: 'Saving...',
-            deleting: 'Deleting...',
-            name: 'Name',
-            phone: 'Phone',
-            email: 'Email',
-            nameRequired: 'Name is required',
-            successAdd: 'Customer added successfully',
-            successEdit: 'Customer updated successfully',
-            successDelete: 'Customer deleted successfully',
-            error: 'Operation failed',
-            editTitle: 'Edit Customer',
-            deleteTitle: 'Confirm Deletion',
-            deleteConfirm: 'Are you sure you want to delete this customer?',
-            confirmDelete: 'Yes, Delete',
-        };
-
-    const canManage = hasPermission('manage_customers');
-
-    const loadCustomers = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/customers', {
-                params: { per_page: settings.items_per_page || 10 }
-            });
-            const data = res.data?.data || res.data || [];
-            setCustomers(data);
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
-    };
-
-    useEffect(() => {
-        loadCustomers();
-    }, []);
-
-    const handleAddCustomer = async () => {
-        if (!newCustomer.name.trim()) {
-            toast.error(t.nameRequired);
-            return;
-        }
-        setAdding(true);
-        try {
-            await api.post('/customers', newCustomer);
-            toast.success(t.successAdd);
-            setShowModal(false);
-            setNewCustomer({ name: "", phone: "", email: "" });
-            await loadCustomers();
-            if (onCustomerAdded) onCustomerAdded();
-        } catch (e) {
-            console.error(e);
-            toast.error(e.response?.data?.message || t.error);
-        } finally {
-            setAdding(false);
-        }
-    };
-
-    const openEditModal = (customer) => {
-        setEditingCustomer(customer);
-        setEditForm({
-            name: customer.name || '',
-            phone: customer.phone || '',
-            email: customer.email || '',
-        });
-        setShowEditModal(true);
-    };
-
-    const handleEditCustomer = async () => {
-        if (!editForm.name.trim()) {
-            toast.error(t.nameRequired);
-            return;
-        }
-        setEditing(true);
-        try {
-            await api.put(`/customers/${editingCustomer.id}`, editForm);
-            toast.success(t.successEdit);
-            setShowEditModal(false);
-            setEditingCustomer(null);
-            await loadCustomers();
-            if (onCustomerAdded) onCustomerAdded();
-        } catch (e) {
-            console.error(e);
-            toast.error(e.response?.data?.message || t.error);
-        } finally {
-            setEditing(false);
-        }
-    };
-
-    const openDeleteModal = (id) => {
-        setDeleteCustomerId(id);
-        setShowDeleteModal(true);
-    };
-
-    const handleDeleteCustomer = async () => {
-        setDeleting(true);
-        try {
-            await api.delete(`/customers/${deleteCustomerId}`);
-            toast.success(t.successDelete);
-            setShowDeleteModal(false);
-            setDeleteCustomerId(null);
-            await loadCustomers();
-            if (onCustomerAdded) onCustomerAdded();
-        } catch (e) {
-            console.error(e);
-            toast.error(e.response?.data?.message || t.error);
-        } finally {
-            setDeleting(false);
-        }
-    };
-
-    if (loading) return <div className="text-center py-4 text-muted">{t.loading}</div>;
-
-    const colCount = canManage ? 5 : 4;
-
-    return (
-        <div>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="mb-0" style={{ color: "#0f172a" }}>{t.title}</h3>
-                {canManage && (
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowModal(true)}>
-                        + {t.add}
-                    </button>
-                )}
-            </div>
-            <div className="table-responsive">
-                <table className="system-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>{t.name}</th>
-                            <th>{t.phone}</th>
-                            <th>{t.email}</th>
-                            {canManage && <th className="text-center">{t.actions}</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {customers.length === 0 ? (
-                            <tr><td colSpan={colCount} className="text-center text-muted py-4">{t.noData}</td></tr>
-                        ) : customers.map((c, i) => (
-                            <tr key={c.id}>
-                                <td>{i + 1}</td>
-                                <td><strong>{c.name}</strong></td>
-                                <td>{c.phone || '-'}</td>
-                                <td>{c.email || '-'}</td>
-                                {canManage && (
-                                    <td className="text-center">
-                                        <div className="d-flex gap-2 justify-content-center">
-                                            <button
-                                                className="btn btn-sm btn-outline-primary"
-                                                onClick={() => openEditModal(c)}
-                                                title={t.edit}
-                                            >
-                                                <i className="fas fa-edit"></i> {t.edit}
-                                            </button>
-                                            <button
-                                                className="btn btn-sm btn-outline-danger"
-                                                onClick={() => openDeleteModal(c.id)}
-                                                title={t.delete}
-                                            >
-                                                <i className="fas fa-trash"></i> {t.delete}
-                                            </button>
-                                        </div>
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* مودال إضافة عميل */}
-            {showModal && (
-                <div className="system-modal-backdrop" onClick={() => setShowModal(false)}>
-                    <div className="system-modal" style={{ maxWidth: "450px" }} onClick={(e) => e.stopPropagation()}>
-                        <div className="system-modal-header">
-                            <h3>{t.add}</h3>
-                            <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
-                        </div>
-                        <div className="system-modal-body">
-                            <div className="mb-3">
-                                <label className="form-label">{t.name} *</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={newCustomer.name}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                                    disabled={adding}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{t.phone}</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={newCustomer.phone}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                                    disabled={adding}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{t.email}</label>
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    value={newCustomer.email}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                                    disabled={adding}
-                                />
-                            </div>
-                        </div>
-                        <div className="system-modal-footer">
-                            <button
-                                type="button"
-                                className="modal-button modal-button-secondary"
-                                onClick={() => setShowModal(false)}
-                                disabled={adding}
-                            >
-                                {t.cancel}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleAddCustomer}
-                                disabled={adding}
-                            >
-                                {adding ? t.saving : t.save}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* مودال تعديل عميل */}
-            {showEditModal && editingCustomer && (
-                <div className="system-modal-backdrop" onClick={() => setShowEditModal(false)}>
-                    <div className="system-modal" style={{ maxWidth: "450px" }} onClick={(e) => e.stopPropagation()}>
-                        <div className="system-modal-header">
-                            <h3>{t.editTitle}</h3>
-                            <button className="modal-close" onClick={() => setShowEditModal(false)}>×</button>
-                        </div>
-                        <div className="system-modal-body">
-                            <div className="mb-3">
-                                <label className="form-label">{t.name} *</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={editForm.name}
-                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                    disabled={editing}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{t.phone}</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={editForm.phone}
-                                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                    disabled={editing}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <label className="form-label">{t.email}</label>
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    value={editForm.email}
-                                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                    disabled={editing}
-                                />
-                            </div>
-                        </div>
-                        <div className="system-modal-footer">
-                            <button
-                                type="button"
-                                className="modal-button modal-button-secondary"
-                                onClick={() => setShowEditModal(false)}
-                                disabled={editing}
-                            >
-                                {t.cancel}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleEditCustomer}
-                                disabled={editing}
-                            >
-                                {editing ? t.saving : t.save}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* مودال تأكيد الحذف */}
-            {showDeleteModal && (
-                <div className="system-modal-backdrop" onClick={() => setShowDeleteModal(false)}>
-                    <div className="system-modal" style={{ maxWidth: "400px" }} onClick={(e) => e.stopPropagation()}>
-                        <div className="system-modal-header">
-                            <h3>{t.deleteTitle}</h3>
-                            <button className="modal-close" onClick={() => setShowDeleteModal(false)}>×</button>
-                        </div>
-                        <div className="system-modal-body">
-                            <p>{t.deleteConfirm}</p>
-                        </div>
-                        <div className="system-modal-footer">
-                            <button
-                                type="button"
-                                className="modal-button modal-button-secondary"
-                                onClick={() => setShowDeleteModal(false)}
-                                disabled={deleting}
-                            >
-                                {t.cancel}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-danger"
-                                onClick={handleDeleteCustomer}
-                                disabled={deleting}
-                            >
-                                {deleting ? t.deleting : t.confirmDelete}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// ============================================================
-// الصفحة الرئيسية
-// ============================================================
 function Operations() {
     const { language } = useLanguage();
-    const { user, hasPermission } = useContext(AuthContext); // ✅ إضافة user
     const { settings } = useSettings();
     const location = useLocation();
 
-    const [activeTab, setActiveTab] = useState("operations");
+    const isArabic = language === "ar";
+
     const [operations, setOperations] = useState([]);
-    const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [showForm, setShowForm] = useState(false);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [typeFilter, setTypeFilter] = useState("all");
-    const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, netCash: 0, pending: 0 });
     const [selectedOperation, setSelectedOperation] = useState(null);
-    const [pagination, setPagination] = useState(null);
+    const [operationToDelete, setOperationToDelete] = useState(null);
+
+    const [search, setSearch] = useState("");
+    const [typeFilter, setTypeFilter] = useState("all");
+
+    const [userName, setUserName] = useState("");
+
+    const [stats, setStats] = useState({
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        operationsCount: 0,
+    });
 
     const t = {
         ar: {
-            title: "العمليات المالية",
-            pageDescription: "إدارة العمليات المالية والموافقات",
-            create: "إنشاء عملية",
-            loading: "جارٍ التحميل...",
-            created: "تم إنشاء العملية بنجاح",
-            failedCreate: "فشل إنشاء العملية",
-            approved: "تمت الموافقة",
-            rejected: "تم الرفض",
-            failedApprove: "فشل الموافقة",
-            failedReject: "فشل الرفض",
-            noData: "لا توجد عمليات",
-            search: "بحث بالعميل أو الوصف",
-            all: "الكل",
-            pending: "معلقة",
-            approvedStatus: "مقبولة",
-            rejectedStatus: "مرفوضة",
-            type: "النوع",
-            amount: "المبلغ",
-            status: "الحالة",
-            createdAt: "التاريخ",
-            actions: "الإجراءات",
-            approve: "موافقة",
-            reject: "رفض",
+            greeting: "أهلًا بك",
+            subtitle: "تابع أموالك وسجّل عملياتك بسهولة",
+            
+            balance: "رصيدك الحالي",
             income: "إجمالي الدخل",
-            expense: "إجمالي الخرج",
-            net: "صافي التدفق",
-            pendingCount: "معلقة",
-            receipt: "قبض (دخل)",
-            payment: "دفع (خرج)",
-            exportExcel: "تصدير Excel",
-            exportPDF: "تصدير PDF",
-            tabOperations: "العمليات",
-            tabCustomers: "العملاء",
-            details: "تفاصيل العملية",
-            operationDetails: "تفاصيل العملية",
+            expense: "إجمالي المصروفات",
+
+            recent: "عملياتك المالية",
+            operationCount: "عملية",
+            
+            add: "أضف عملية",
+            
+            search: "ابحث في العمليات...",
+            
+            all: "الكل",
+            incomeOnly: "الدخل",
+            expenseOnly: "المصروفات",
+            
+            allOperations: "عرض كل العمليات",
+
+            noOperations:
+                "لم تسجّل أي عملية مالية بعد.",
+            
+            noResults:
+                "لم نجد عمليات تطابق بحثك أو الفلتر المحدد.",
+            
+            noDescription:
+                "بدون وصف",
+
+            edit: "تعديل العملية",
+            delete: "حذف العملية",
+
+            exportExcel:
+                "تصدير العمليات إلى Excel",
+            exportPDF:
+                "تصدير العمليات إلى PDF",
+
+            deleteTitle:
+                "حذف العملية؟",
+
+            deleteConfirm:
+                "هل أنت متأكد من أنك تريد حذف هذه العملية؟",
+
+            deleteWarning:
+                "سيتم حذف العملية نهائيًا ولن تتمكن من استعادتها بعد ذلك.",
+
+            cancel: "إلغاء",
+            confirmDelete: "نعم، احذفها",
             close: "إغلاق",
-            description: "الوصف",
-            customer: "العميل",
-            mainCategory: "التصنيف الأساسي",
-            subCategory: "التصنيف الفرعي",
-            rejectionReason: "سبب الرفض",
-            noReason: "لا يوجد سبب",
-            noCustomer: "لا يوجد عميل",
-            noDescription: "لا يوجد وصف",
+
+            addSuccess:
+                "تمت إضافة العملية بنجاح.",
+
+            updateSuccess:
+                "تم تحديث العملية بنجاح.",
+
+            deleteSuccess:
+                "تم حذف العملية بنجاح.",
+
+            failed:
+                "تعذر تنفيذ العملية. حاول مرة أخرى.",
         },
+
         en: {
-            title: "Financial Operations",
-            pageDescription: "Manage financial operations and approvals",
-            create: "Create Operation",
-            loading: "Loading...",
-            created: "Operation created successfully",
-            failedCreate: "Failed to create operation",
-            approved: "Operation approved",
-            rejected: "Operation rejected",
-            failedApprove: "Failed to approve",
-            failedReject: "Failed to reject",
-            noData: "No operations found",
-            search: "Search by customer or description",
+            greeting: "Welcome back",
+            subtitle:
+                "Track your money and record your operations with ease",
+
+            balance: "Your current balance",
+            income: "Total income",
+            expense: "Total expenses",
+
+            recent: "Your financial operations",
+            operationCount: "operations",
+
+            add: "Add operation",
+
+            search: "Search your operations...",
+
             all: "All",
-            pending: "Pending",
-            approvedStatus: "Approved",
-            rejectedStatus: "Rejected",
-            type: "Type",
-            amount: "Amount",
-            status: "Status",
-            createdAt: "Date",
-            actions: "Actions",
-            approve: "Approve",
-            reject: "Reject",
-            income: "Total Income",
-            expense: "Total Expense",
-            net: "Net Cash Flow",
-            pendingCount: "Pending",
-            receipt: "Receipt (Income)",
-            payment: "Payment (Expense)",
-            exportExcel: "Export Excel",
-            exportPDF: "Export PDF",
-            tabOperations: "Operations",
-            tabCustomers: "Customers",
-            details: "Operation Details",
-            operationDetails: "Operation Details",
+            incomeOnly: "Income",
+            expenseOnly: "Expenses",
+
+            allOperations:
+                "View all operations",
+
+            noOperations:
+                "You haven't recorded any financial operations yet.",
+
+            noResults:
+                "No operations match your search or selected filter.",
+
+            noDescription:
+                "No description",
+
+            edit: "Edit operation",
+            delete: "Delete operation",
+
+            exportExcel:
+                "Export operations to Excel",
+            exportPDF:
+                "Export operations to PDF",
+
+            deleteTitle:
+                "Delete this operation?",
+
+            deleteConfirm:
+                "Are you sure you want to delete this operation?",
+
+            deleteWarning:
+                "This operation will be permanently deleted and cannot be restored.",
+
+            cancel: "Cancel",
+            confirmDelete: "Yes, delete it",
             close: "Close",
-            description: "Description",
-            customer: "Customer",
-            mainCategory: "Main Category",
-            subCategory: "Sub Category",
-            rejectionReason: "Rejection Reason",
-            noReason: "No reason provided",
-            noCustomer: "No Customer",
-            noDescription: "No description",
+
+            addSuccess:
+                "Operation added successfully.",
+
+            updateSuccess:
+                "Operation updated successfully.",
+
+            deleteSuccess:
+                "Operation deleted successfully.",
+
+            failed:
+                "We couldn't complete that action. Please try again.",
         },
     };
-    const lang = language === "ar" ? t.ar : t.en;
+    const lang = isArabic ? t.ar : t.en;
 
-    // فتح المودال تلقائياً من الـ URL
-    useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        if (params.get('action') === 'create' || params.get('openForm') === 'true') {
-            setShowForm(true);
-        }
-    }, [location]);
+    const getCategoryName = (category) => {
+        if (!category) return "-";
+
+        return isArabic
+            ? category.name_ar || category.name_en || "-"
+            : category.name_en || category.name_ar || "-";
+    };
 
     const loadOperations = async () => {
         try {
             setLoading(true);
-            const params = { per_page: settings.items_per_page || 10, };
-            if (search.trim()) params.search = search.trim();
-            if (statusFilter !== "all") params.status = statusFilter;
-            if (typeFilter !== "all") params.type = typeFilter;
-            const response = await operationService.getAll(params);
-            const ops = response.data?.data || [];
-            setOperations(ops);
-            setPagination(response.data || null);
-            // حساب الإحصائيات
-            const totalIncome = ops.filter(op => op.type === 'receipt' && op.status === 'approved')
-                .reduce((sum, op) => sum + (parseFloat(op.amount) || 0), 0);
-            const totalExpense = ops.filter(op => op.type === 'payment' && op.status === 'approved')
-                .reduce((sum, op) => sum + (parseFloat(op.amount) || 0), 0);
-            const pending = ops.filter(op => op.status === 'pending').length;
-            setStats({ totalIncome, totalExpense, netCash: totalIncome - totalExpense, pending });
-            } catch (error) {
-                console.error(error);
-                toast.error(lang.failedCreate);
-            } finally {
-                setLoading(false);
+
+            const params = {
+                per_page: settings.items_per_page || 15,
+            };
+
+            if (search.trim()) {
+                params.search = search.trim();
             }
-        };
 
-         // ✅ تعديل دالة التصدير لاستخدام جميع البيانات (بدون Pagination)
-        const exportAllOperations = async () => {
-            try {
-                const response = await operationService.getAll({ 
-                    search: search.trim() || undefined,
-                    status: statusFilter !== "all" ? statusFilter : undefined,
-                    type: typeFilter !== "all" ? typeFilter : undefined,
-                    per_page: 10000 // جلب كل البيانات للتصدير
-                });
-                const allOps = response.data?.data || [];
-                exportToExcel(allOps, 'operations');
-            } catch (error) {
-                console.error(error);
-                toast.error('فشل التصدير');
+            if (typeFilter !== "all") {
+                params.type = typeFilter;
             }
-        };
 
-        // إعادة التحميل عند تغيير الإعدادات
-        useEffect(() => {
-            loadOperations();
-        }, [settings.items_per_page, search, statusFilter, typeFilter]);
+            const [operationsResponse, dashboardResponse] =
+                await Promise.all([
+                    operationService.getAll(params),
+                    dashboardService.getDashboard(),
+                ]);
 
-        const loadCustomers = async () => {
-            try {
-                const response = await customerService.getAll();
-                setCustomers(response.data?.data || []);
-            } catch (error) { console.error(error); }
-        };
+            setOperations(
+                operationsResponse?.data?.data || []
+            );
+
+            const dashboardData = dashboardResponse || {};
+
+            setUserName(dashboardData.user?.name || "");
+
+            setStats({
+                totalIncome: Number(
+                    dashboardData.stats?.totalIncome || 0
+                ),
+                totalExpense: Number(
+                    dashboardData.stats?.totalExpense || 0
+                ),
+                balance: Number(
+                    dashboardData.stats?.balance || 0
+                ),
+                operationsCount: Number(
+                    dashboardData.stats?.operationsCount || 0
+                ),
+            });
+        } catch (error) {
+            console.error("Operations loading error:", error);
+
+            toast.error(
+                error.response?.data?.message || lang.failed
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const timer = setTimeout(() => loadOperations(), 300);
+        const timer = setTimeout(loadOperations, 250);
+
         return () => clearTimeout(timer);
-    }, [search, statusFilter, typeFilter]);
+    }, [
+        search,
+        typeFilter,
+        settings.items_per_page,
+    ]);
 
-    useEffect(() => { loadCustomers(); }, []);
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
 
-    const createOperation = async (operation) => {
-        try {
-            const data = { ...operation };
-            if (!data.category_id) data.category_id = null;
-            await operationService.create(data);
-            toast.success(lang.created);
-            setShowForm(false);
-            loadOperations();
-            loadCustomers();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || lang.failedCreate);
-        }
-    };
-
-    // ✅ دالة الموافقة والرفض المحسنة
-    const handleApproval = async (id, status) => {
-        try {
-            let rejectionReason = null;
-            if (status === 'rejected') {
-                rejectionReason = prompt(language === 'ar' ? 'أدخل سبب الرفض:' : 'Enter rejection reason:');
-                if (rejectionReason === null) {
-                    return;
-                }
-                if (!rejectionReason.trim()) {
-                    toast.error(language === 'ar' ? 'يرجى إدخال سبب الرفض' : 'Please enter a rejection reason');
-                    return;
-                }
-            }
-
-            const payload = { operation_id: id, status };
-            if (rejectionReason) {
-                payload.rejection_reason = rejectionReason.trim();
-            }
-
-            await api.post("/approvals", payload);
-            toast.success(status === "approved" ? lang.approved : lang.rejected);
-            loadOperations();
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || (status === "approved" ? lang.failedApprove : lang.failedReject));
-        }
-    };
-
-    const handleShowForm = async () => {
-        try {
-            await loadCustomers();
+        if (
+            params.get("action") === "create" ||
+            params.get("openForm") === "true"
+        ) {
+            setSelectedOperation(null);
             setShowForm(true);
+        }
+    }, [location]);
+
+    const closeForm = () => {
+        setShowForm(false);
+        setSelectedOperation(null);
+    };
+
+    const openCreateForm = () => {
+        setSelectedOperation(null);
+        setShowForm(true);
+    };
+
+    const openEditForm = (operation) => {
+        setSelectedOperation(operation);
+        setShowForm(true);
+    };
+
+    const handleSave = async (data) => {
+        try {
+            if (selectedOperation) {
+                await operationService.update(
+                    selectedOperation.id,
+                    data
+                );
+
+                toast.success(lang.updateSuccess);
+            } else {
+                await operationService.create(data);
+
+                toast.success(lang.addSuccess);
+            }
+
+            closeForm();
+            await loadOperations();
         } catch (error) {
-            console.error("Error loading customers:", error);
-            toast.error(language === 'ar' ? 'فشل تحميل العملاء' : 'Failed to load customers');
+            console.error("Operation save error:", error);
+
+            toast.error(
+                error.response?.data?.message || lang.failed
+            );
+
+            throw error;
         }
     };
 
+    const handleDelete = async () => {
+        if (!operationToDelete) return;
 
-    if (loading && operations.length === 0 && activeTab === "operations") {
+        try {
+            await operationService.delete(
+                operationToDelete.id
+            );
+
+            toast.success(lang.deleteSuccess);
+            setOperationToDelete(null);
+
+            await loadOperations();
+        } catch (error) {
+            console.error("Operation delete error:", error);
+
+            toast.error(
+                error.response?.data?.message || lang.failed
+            );
+        }
+    };
+
+    if (loading && operations.length === 0) {
         return (
-            <div className="dashboard-page" style={{ padding: "24px 32px" }}>
-                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                    <h2 style={{ fontWeight: 600, color: "#0f172a" }}>{lang.title}</h2>
-                </div>
-                <div className="dashboard-financial-grid">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="financial-card" style={{ minHeight: '100px' }}>
-                            <div className="skeleton-line" style={{ width: '60%', height: '12px', background: '#e2e8f0', borderRadius: '4px', marginBottom: '8px' }}></div>
-                            <div className="skeleton-line" style={{ width: '40%', height: '24px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                        </div>
-                    ))}
-                </div>
-                <TableSkeleton rows={6} columns={7} />
+            <div
+                className="personal-finance-page"
+                dir={isArabic ? "rtl" : "ltr"}
+            >
+                <TableSkeleton rows={5} columns={4} />
             </div>
         );
     }
 
     return (
-        <div className="dashboard-page" style={{ padding: "24px 32px" }}>
-            {/* ============================================================
-                العنوان الرئيسي
-            ============================================================ */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+        <div
+            className="personal-finance-page"
+            dir={isArabic ? "rtl" : "ltr"}
+        >
+            {/* Intro */}
+            <header className="finance-intro">
                 <div>
-                    <h1 className="h2 fw-bold mb-1" style={{ color: "#0f172a" }}>{lang.title}</h1>
-                    <p className="text-muted" style={{ fontSize: "14px" }}>{lang.pageDescription}</p>
+                    <div className="finance-greeting">
+                        {lang.greeting}
+                        {userName ? `، ${userName}` : ""}
+                    </div>
+
+                    <h1>{lang.subtitle}</h1>
                 </div>
-                {hasPermission("manage_operations") && (
-                    <button className="btn btn-primary" onClick={handleShowForm}>
-                        + {lang.create}
-                    </button>
-                )}
-            </div>
 
-            {/* ============================================================
-                التبويبات (Tabs) - شكل المتصفح (Chrome)
-            ============================================================ */}
-            <div className="d-flex gap-1 mb-4" style={{ borderBottom: "2px solid #e9edf2" }}>
                 <button
-                    className={`btn btn-link text-decoration-none fw-semibold px-4 py-2 ${activeTab === 'operations' ? 'text-primary bg-white' : 'text-secondary'}`}
-                    onClick={() => setActiveTab('operations')}
-                    style={{
-                        border: activeTab === 'operations' ? '1px solid #e9edf2' : 'none',
-                        borderBottom: activeTab === 'operations' ? '2px solid #2563eb' : 'none',
-                        marginBottom: '-2px',
-                        fontSize: "14px",
-                        background: activeTab === 'operations' ? '#ffffff' : 'transparent',
-                        borderRadius: "8px 8px 0 0",
-                        transition: 'all 0.2s ease',
-                        color: activeTab === 'operations' ? '#2563eb' : '#64748b',
-                    }}
+                    type="button"
+                    className="finance-add"
+                    onClick={openCreateForm}
                 >
-                    {lang.tabOperations}
+                    <FaPlus size={11} />
+                    {lang.add}
                 </button>
-                <button
-                    className={`btn btn-link text-decoration-none fw-semibold px-4 py-2 ${activeTab === 'customers' ? 'text-primary bg-white' : 'text-secondary'}`}
-                    onClick={() => setActiveTab('customers')}
-                    style={{
-                        border: activeTab === 'customers' ? '1px solid #e9edf2' : 'none',
-                        borderBottom: activeTab === 'customers' ? '2px solid #2563eb' : 'none',
-                        marginBottom: '-2px',
-                        fontSize: "14px",
-                        background: activeTab === 'customers' ? '#ffffff' : 'transparent',
-                        borderRadius: "8px 8px 0 0",
-                        transition: 'all 0.2s ease',
-                        color: activeTab === 'customers' ? '#2563eb' : '#64748b',
-                    }}
-                >
-                    {lang.tabCustomers}
-                </button>
-            </div>
+            </header>
 
-            <div className="tab-content">
-                {activeTab === 'operations' && (
-                    <>
-                        {/* ============================================================
-                            بطاقات الإحصائيات المالية - مع توسيط المعلومات
-                        ============================================================ */}
-                        <div className="row g-3 mb-4">
-                            <div className="col-md-3 col-sm-6">
-                                <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
-                                    <div className="financial-label">{lang.income}</div>
-                                    <div className="financial-value fs-4">
-                                        <FormatAmount 
-                                            key={`income-${settings.currency}-${language}`} 
-                                            value={stats.totalIncome} 
-                                        />
-                                    </div>
-                                    <div className="financial-description">{lang.receipt}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-3 col-sm-6">
-                                <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
-                                    <div className="financial-label">{lang.expense}</div>
-                                    <div className="financial-value fs-4">
-                                        <FormatAmount 
-                                            key={`expense-${settings.currency}-${language}`} 
-                                            value={stats.totalExpense} 
-                                        />
-                                    </div>
-                                    <div className="financial-description">{lang.payment}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-3 col-sm-6">
-                                <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
-                                    <div className="financial-label">{lang.net}</div>
-                                    <div className="financial-value fs-4" style={{ color: stats.netCash >= 0 ? '#16a34a' : '#dc2626' }}>
-                                        <FormatAmount 
-                                            key={`net-${settings.currency}-${language}`} 
-                                            value={stats.netCash} 
-                                        />
-                                    </div>
-                                    <div className="financial-description">{lang.pendingCount}</div>
-                                </div>
-                            </div>
-                            <div className="col-md-3 col-sm-6">
-                                <div className="financial-card p-3 h-100 d-flex flex-column align-items-center justify-content-center text-center">
-                                    <div className="financial-label">{lang.pendingCount}</div>
-                                    <div className="financial-value fs-4" style={{ color: '#d97706' }}>{stats.pending}</div>
-                                    <div className="financial-description">{lang.pending}</div>
-                                </div>
-                            </div>
-                        </div>
+            {/* Balance */}
+            <section className="finance-balance">
+                <div>
+                    <div className="finance-balance-caption">
+                        {lang.balance}
+                    </div>
 
-                        {/* ============================================================
-                            شريط الفلترة والبحث
-                        ============================================================ */}
-                        <div className="management-toolbar flex-wrap mb-3">
-                            <input
-                                type="search"
-                                className="form-control"
-                                placeholder={lang.search}
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{ flex: 1, minWidth: "180px" }}
+                    <div className="finance-balance-number">
+                        <FormatAmount
+                            value={stats.balance}
+                        />
+                    </div>
+                </div>
+
+                <div className="finance-balance-side">
+                    <div>
+                        <span className="income-dot" />
+                        <span>{lang.income}</span>
+
+                        <strong>
+                            <FormatAmount
+                                value={stats.totalIncome}
                             />
-                            <select
-                                className="form-select"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{ width: "140px" }}
-                            >
-                                <option value="all">{lang.all}</option>
-                                <option value="pending">{lang.pending}</option>
-                                <option value="approved">{lang.approvedStatus}</option>
-                                <option value="rejected">{lang.rejectedStatus}</option>
-                            </select>
-                            <select
-                                className="form-select"
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                                style={{ width: "140px" }}
-                            >
-                                <option value="all">{lang.all}</option>
-                                <option value="receipt">{lang.receipt}</option>
-                                <option value="payment">{lang.payment}</option>
-                            </select>
-                        </div>
+                        </strong>
+                    </div>
 
-                        {/* ============================================================
-                            شريط التصدير
-                        ============================================================ */}
-                        <div className="d-flex gap-2 mb-4">
-                            <button className="btn btn-success btn-sm" onClick={() => exportToExcel(operations, 'operations')}>
-                                📊 {lang.exportExcel}
-                            </button>
-                            <button className="btn btn-danger btn-sm" onClick={() => exportToPDF(operations, 'operations')}>
-                                📄 {lang.exportPDF}
-                            </button>
-                        </div>
+                    <div>
+                        <span className="expense-dot" />
+                        <span>{lang.expense}</span>
 
-                        {/* ============================================================
-                            جدول العمليات (مع عمود العميل)
-                        ============================================================ */}
-                        <div className="table-responsive">
-                            <table className="system-table">
-                                <thead>
-                                    <tr>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>#</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.customer}</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.type}</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.amount}</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.status}</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.createdAt}</th>
-                                        <th className="px-3 py-3 text-center fw-semibold" style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.03em", color: "#64748b" }}>{lang.actions}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {operations.length === 0 ? (
-                                        <tr><td colSpan="7" className="text-center text-muted py-4">{lang.noData}</td></tr>
-                                    ) : (
-                                        operations.map((op) => (
-                                            <tr key={op.id} onClick={() => setSelectedOperation(op)} style={{ cursor: 'pointer' }}>
-                                                <td className="px-3 py-3 text-center fw-semibold">{op.id}</td>
-                                                <td className="px-3 py-3 text-center">{op.customer?.name || lang.noCustomer}</td>
-                                                <td className="px-3 py-3 text-center">
-                                                    <span className={`badge ${op.type === 'receipt' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'} px-3 py-2`}>
-                                                        {op.type === 'receipt' ? <FaArrowUp className="me-1" /> : <FaArrowDown className="me-1" />}
-                                                        {op.type === 'receipt' ? lang.receipt : lang.payment}
+                        <strong>
+                            <FormatAmount
+                                value={stats.totalExpense}
+                            />
+                        </strong>
+                    </div>
+                </div>
+            </section>
+
+            {/* Recent operations */}
+            <section className="finance-recent">
+                <div className="finance-recent-header">
+                    <div>
+                        <h2>{lang.recent}</h2>
+
+                        <span>
+                            {stats.operationsCount}{" "}
+                            {lang.operationCount}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="finance-view-all"
+                        onClick={() => {
+                            setSearch("");
+                            setTypeFilter("all");
+                        }}
+                    >
+                        {lang.allOperations}
+                    </button>
+                </div>
+
+                {/* Tools */}
+                <div className="finance-toolbar">
+                    <div className="finance-search">
+                        <FaSearch size={11} />
+
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
+                            placeholder={lang.search}
+                        />
+                    </div>
+
+                    <div className="finance-filter">
+                        <button
+                            type="button"
+                            className={
+                                typeFilter === "all"
+                                    ? "active"
+                                    : ""
+                            }
+                            onClick={() =>
+                                setTypeFilter("all")
+                            }
+                        >
+                            {lang.all}
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                typeFilter === "income"
+                                    ? "active"
+                                    : ""
+                            }
+                            onClick={() =>
+                                setTypeFilter("income")
+                            }
+                        >
+                            {lang.incomeOnly}
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                typeFilter === "expense"
+                                    ? "active"
+                                    : ""
+                            }
+                            onClick={() =>
+                                setTypeFilter("expense")
+                            }
+                        >
+                            {lang.expenseOnly}
+                        </button>
+                    </div>
+
+                    <div className="finance-export">
+                        <button
+                            type="button"
+                            title={lang.exportExcel}
+                            onClick={() =>
+                                exportToExcel(
+                                    operations,
+                                    "operations"
+                                )
+                            }
+                        >
+                            <FaFileExcel size={11} />
+                        </button>
+
+                        <button
+                            type="button"
+                            title={lang.exportPDF}
+                            onClick={() =>
+                                exportToPDF(
+                                    operations,
+                                    "operations"
+                                )
+                            }
+                        >
+                            <FaFilePdf size={11} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* List */}
+                <div className="finance-list">
+                    {operations.length === 0 ? (
+                        <div className="finance-empty-state">
+                            <strong>
+                                {search.trim() ||
+                                typeFilter !== "all"
+                                    ? lang.noResults
+                                    : lang.noOperations}
+                            </strong>
+                        </div>
+                    ) : (
+                        operations.map((operation) => {
+                            const isIncome =
+                                operation.type === "income";
+
+                            return (
+                                <article
+                                    key={operation.id}
+                                    className="finance-item"
+                                >
+                                    <div
+                                        className={`finance-item-icon ${
+                                            isIncome
+                                                ? "income"
+                                                : "expense"
+                                        }`}
+                                    >
+                                        {isIncome ? (
+                                            <FaArrowUp />
+                                        ) : (
+                                            <FaArrowDown />
+                                        )}
+                                    </div>
+
+                                    <div className="finance-item-content">
+                                        <div className="finance-item-name">
+                                            {getCategoryName(
+                                                operation.category
+                                            )}
+                                        </div>
+
+                                        <div className="finance-item-details">
+                                            <FormatDate
+                                                value={
+                                                    operation.operation_date
+                                                }
+                                            />
+
+                                            {operation.description && (
+                                                <>
+                                                    <span>·</span>
+                                                    <span>
+                                                        {
+                                                            operation.description
+                                                        }
                                                     </span>
-                                                </td>
-                                                <td className="px-3 py-3 text-center fw-bold"><FormatAmount value={op.amount} /></td>
-                                                <td className="px-3 py-3 text-center">
-                                                    {op.status === "rejected" ? (
-                                                        <span 
-                                                            className="badge bg-danger px-3 py-2" 
-                                                            title={op.rejection_reason || lang.noReason}
-                                                            style={{ cursor: 'help' }}
-                                                        >
-                                                            ✗ {lang.rejectedStatus}
-                                                        </span>
-                                                    ) : (
-                                                        <span className={`badge ${op.status === 'pending' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-success bg-opacity-10 text-success'} px-3 py-2`}>
-                                                            {op.status === 'pending' ? lang.pending : lang.approvedStatus}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-3 text-center" style={{ color: "#64748b" }}><FormatDate value={op.created_at} /></td>
-                                                <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                                                    {op.status === "pending" && hasPermission("manage_approvals") && (
-                                                        <div className="d-flex gap-2 justify-content-center">
-                                                            <button className="btn btn-sm btn-success" onClick={() => handleApproval(op.id, "approved")}>
-                                                                {lang.approve}
-                                                            </button>
-                                                            <button className="btn btn-sm btn-danger" onClick={() => handleApproval(op.id, "rejected")}>
-                                                                {lang.reject}
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    {op.status === "approved" && (
-                                                        <span className="badge bg-success">✓ {lang.approvedStatus}</span>
-                                                    )}
-                                                    {op.status === "rejected" && (
-                                                        <span 
-                                                            className="badge bg-danger" 
-                                                            title={op.rejection_reason || lang.noReason}
-                                                            style={{ cursor: 'help' }}
-                                                        >
-                                                            ✗ {lang.rejectedStatus}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* ============================================================
-                            مودال إنشاء عملية
-                        ============================================================ */}
-                        {showForm && (
-                            <div className="system-modal-backdrop" onClick={() => setShowForm(false)}>
-                                <div className="system-modal" style={{ maxWidth: "600px" }} onClick={(e) => e.stopPropagation()}>
-                                    <div className="system-modal-header">
-                                        <h3>{lang.create}</h3>
-                                        <button className="modal-close" onClick={() => setShowForm(false)}>×</button>
-                                    </div>
-                                    <div className="system-modal-body">
-                                        <OperationForm
-                                            customers={customers}
-                                            onSave={createOperation}
-                                            onCancel={() => setShowForm(false)}
-                                            onCustomerAdded={loadCustomers}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ============================================================
-                            مودال تفاصيل العملية - مع عرض التصنيفات وسبب الرفض
-                        ============================================================ */}
-                        {selectedOperation && (
-                            <div className="system-modal-backdrop" onClick={() => setSelectedOperation(null)}>
-                                <div className="system-modal" style={{ maxWidth: "540px", width: "100%", borderRadius: "16px" }} onClick={(e) => e.stopPropagation()}>
-                                    <div className="system-modal-header" style={{ 
-                                        padding: "20px 24px", 
-                                        borderBottom: "1px solid #e9edf2", 
-                                        display: "flex", 
-                                        justifyContent: "space-between", 
-                                        alignItems: "center",
-                                        background: "#fafbfc",
-                                        borderRadius: "16px 16px 0 0"
-                                    }}>
-                                        <h3 style={{ margin: 0, fontWeight: 600, fontSize: "18px", color: "#0f172a" }}>
-                                            {lang.operationDetails} #{selectedOperation.id}
-                                        </h3>
-                                        <button className="modal-close" onClick={() => setSelectedOperation(null)} style={{ 
-                                            background: "none", 
-                                            border: "none", 
-                                            fontSize: "24px", 
-                                            cursor: "pointer", 
-                                            color: "#94a3b8",
-                                            padding: "0 4px",
-                                            transition: "color 0.2s"
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.color = "#0f172a"}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-
-                                    <div className="system-modal-body" style={{ padding: "24px" }}>
-                                        <div className="row g-3">
-                                            <div className="col-6">
-                                                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                    {lang.type}
-                                                </div>
-                                                <div style={{ fontSize: "15px", fontWeight: 600, color: "#0f172a", marginTop: "4px" }}>
-                                                    {selectedOperation.type === 'receipt' ? (
-                                                        <span className="text-success"><FaArrowUp className="me-1" /> {lang.receipt}</span>
-                                                    ) : (
-                                                        <span className="text-danger"><FaArrowDown className="me-1" /> {lang.payment}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="col-6">
-                                                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                    {lang.amount}
-                                                </div>
-                                                <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", marginTop: "4px" }}>
-                                                    <FormatAmount value={selectedOperation.amount} />
-                                                </div>
-                                            </div>
-
-                                            <div className="col-6">
-                                                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                    {lang.status}
-                                                </div>
-                                                <div style={{ marginTop: "4px" }}>
-                                                    {selectedOperation.status === "rejected" ? (
-                                                        <span 
-                                                            className="badge bg-danger px-3 py-2" 
-                                                            title={selectedOperation.rejection_reason || lang.noReason}
-                                                            style={{ cursor: 'help' }}
-                                                        >
-                                                            ✗ {lang.rejectedStatus}
-                                                        </span>
-                                                    ) : (
-                                                        <span className={`badge ${selectedOperation.status === 'pending' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-success bg-opacity-10 text-success'} px-3 py-2`}>
-                                                            {selectedOperation.status === 'pending' ? lang.pending : lang.approvedStatus}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="col-6">
-                                                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                    {lang.createdAt}
-                                                </div>
-                                                <div style={{ fontSize: "15px", color: "#0f172a", marginTop: "4px" }}>
-                                                    <FormatDate value={selectedOperation.created_at} />
-                                                </div>
-                                            </div>
-
-                                            {selectedOperation.customer && (
-                                                <div className="col-12">
-                                                    <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                        {lang.customer}
-                                                    </div>
-                                                    <div style={{ fontSize: "15px", fontWeight: 500, color: "#0f172a", marginTop: "4px" }}>
-                                                        {selectedOperation.customer.name}
-                                                    </div>
-                                                </div>
+                                                </>
                                             )}
-
-                                            {/* سبب الرفض (إذا كانت العملية مرفوضة) */}
-                                            {selectedOperation.status === "rejected" && (
-                                                <div className="col-12">
-                                                    <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                        {lang.rejectionReason}
-                                                    </div>
-                                                    <div style={{ 
-                                                        fontSize: "14px", 
-                                                        color: "#0f172a", 
-                                                        marginTop: "4px",
-                                                        padding: "12px 16px",
-                                                        background: "#f8afc",
-                                                        borderRadius: "8px",
-                                                        border: "1px solid #e9edf2",
-                                                        minHeight: "50px"
-                                                    }}>
-                                                        {selectedOperation.rejection_reason || lang.noReason}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* التصنيف الأساسي */}
-                                            {selectedOperation.category && (
-                                                <div className="col-12">
-                                                    <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                        {lang.mainCategory}
-                                                    </div>
-                                                    <div style={{ fontSize: "15px", color: "#0f172a", marginTop: "4px" }}>
-                                                        {selectedOperation.category.name}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* التصنيف الفرعي */}
-                                            {selectedOperation.subCategory && (
-                                                <div className="col-12">
-                                                    <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                        {lang.subCategory}
-                                                    </div>
-                                                    <div style={{ fontSize: "15px", color: "#0f172a", marginTop: "4px" }}>
-                                                        {selectedOperation.subCategory.name}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* الوصف */}
-                                            <div className="col-12">
-                                                <div style={{ fontSize: "12px", color: "#64748b", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                                                    {lang.description}
-                                                </div>
-                                                <div style={{ 
-                                                    fontSize: "14px", 
-                                                    color: "#0f172a", 
-                                                    marginTop: "4px",
-                                                    padding: "12px 16px",
-                                                    background: "#f8afc",
-                                                    borderRadius: "8px",
-                                                    border: "1px solid #e9edf2",
-                                                    minHeight: "50px"
-                                                }}>
-                                                    {selectedOperation.description || lang.noDescription}
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="system-modal-footer" style={{ 
-                                        padding: "16px 24px", 
-                                        borderTop: "1px solid #e9edf2", 
-                                        display: "flex", 
-                                        justifyContent: "flex-end",
-                                        background: "#fafbfc",
-                                        borderRadius: "0 0 16px 16px"
-                                    }}>
-                                        <button 
-                                            className="modal-button modal-button-secondary" 
-                                            onClick={() => setSelectedOperation(null)}
-                                            style={{
-                                                padding: "8px 20px",
-                                                borderRadius: "8px",
-                                                border: "1px solid #e9edf2",
-                                                background: "#ffffff",
-                                                color: "#0f172a",
-                                                fontWeight: 500,
-                                                cursor: "pointer",
-                                                transition: "all 0.2s"
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = "#f1f5f9";
-                                                e.currentTarget.style.borderColor = "#cbd5e1";
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = "#ffffff";
-                                                e.currentTarget.style.borderColor = "#e9edf2";
-                                            }}
+                                    <div
+                                        className={`finance-item-amount ${
+                                            isIncome
+                                                ? "income"
+                                                : "expense"
+                                        }`}
+                                    >
+                                        {isIncome ? "+" : "-"}{" "}
+                                        <FormatAmount
+                                            value={
+                                                operation.amount
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="finance-item-actions">
+                                        <button
+                                            type="button"
+                                            title={lang.edit}
+                                            onClick={() =>
+                                                openEditForm(
+                                                    operation
+                                                )
+                                            }
                                         >
-                                            {lang.close}
+                                            <FaEdit size={10} />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            title={lang.delete}
+                                            onClick={() =>
+                                                setOperationToDelete(
+                                                    operation
+                                                )
+                                            }
+                                        >
+                                            <FaTrash size={9} />
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
+                                </article>
+                            );
+                        })
+                    )}
+                </div>
+            </section>
 
-                {activeTab === 'customers' && <CustomersSimple onCustomerAdded={loadCustomers} />}
-            </div>
+            {/* Form */}
+            {showForm && (
+                <div
+                    className="system-modal-backdrop"
+                    onClick={closeForm}
+                >
+                    <div
+                        className="system-modal"
+                        style={{
+                            maxWidth: "700px",
+                            width: "100%",
+                        }}
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+                        <div className="system-modal-header">
+                            <h3>
+                                {selectedOperation
+                                    ? lang.edit
+                                    : lang.add}
+                            </h3>
+
+                            <button
+                                type="button"
+                                className="modal-close"
+                                onClick={closeForm}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="system-modal-body">
+                            <OperationForm
+                                operation={selectedOperation}
+                                onSave={handleSave}
+                                onCancel={closeForm}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete */}
+            {operationToDelete && (
+                <div
+                    className="system-modal-backdrop"
+                    onClick={() =>
+                        setOperationToDelete(null)
+                    }
+                >
+                    <div
+                        className="system-modal"
+                        style={{ maxWidth: "420px" }}
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+                        <div className="system-modal-header">
+                            <h3>{lang.deleteTitle}</h3>
+
+                            <button
+                                type="button"
+                                className="modal-close"
+                                onClick={() =>
+                                    setOperationToDelete(
+                                        null
+                                    )
+                                }
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="system-modal-body">
+                            <p className="finance-delete-title">
+                                {lang.deleteConfirm}
+                            </p>
+
+                            <p className="finance-delete-text">
+                                {lang.deleteWarning}
+                            </p>
+                        </div>
+
+                        <div className="system-modal-footer">
+                            <button
+                                type="button"
+                                className="modal-button-secondary"
+                                onClick={() =>
+                                    setOperationToDelete(
+                                        null
+                                    )
+                                }
+                            >
+                                {lang.cancel}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn btn-danger"
+                                onClick={handleDelete}
+                            >
+                                {lang.confirmDelete}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

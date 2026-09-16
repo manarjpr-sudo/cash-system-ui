@@ -1,40 +1,52 @@
 import axios from "axios";
 
+const API_BASE_URL = "http://127.0.0.1:8000/api";
+
 const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/v1",
+    baseURL: `${API_BASE_URL}/v1`,
     headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        Accept: "application/json",
+    },
+});
+
+const authApi = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
     },
 });
 
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("token");
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
         return config;
     },
     (error) => Promise.reject(error)
 );
 
-// 🔥 إضافة Interceptor للردود
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // إذا كان الخطأ 401 (Unauthorized)
         if (error.response?.status === 401) {
-            // حذف البيانات المحلية
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            // إعادة التوجيه إلى تسجيل الدخول (إذا لم يكن بالفعل هناك)
+
             if (window.location.pathname !== "/login") {
                 window.location.href = "/login";
             }
         }
+
         return Promise.reject(error);
     }
 );
+
+export { authApi };
 
 export default api;
