@@ -43,11 +43,16 @@
 .personal-layout-main {
     min-width: 0;
     min-height: 100vh;
-
     margin-inline-start: 230px;
 
     display: flex;
     flex-direction: column;
+
+    transition: margin-inline-start 0.25s ease;
+}
+
+.personal-layout.sidebar-collapsed .personal-layout-main {
+    margin-inline-start: 66px;
 }
 
 .personal-layout-content {
@@ -106,6 +111,15 @@
 
     scrollbar-width: thin;
     scrollbar-color: rgba(59, 130, 246, 0.22) transparent;
+
+    transition:
+        width 0.25s ease,
+        padding 0.25s ease;
+}
+
+.finance-sidebar.collapsed {
+    width: 66px;
+    padding-inline: 7px;
 }
 
 .finance-sidebar::-webkit-scrollbar {
@@ -140,6 +154,11 @@
     border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
+.finance-sidebar.collapsed .finance-sidebar-brand {
+    justify-content: center;
+    padding-inline: 0;
+}
+
 .finance-brand {
     min-width: 0;
 
@@ -155,69 +174,33 @@
     color: inherit;
 }
 
-.finance-brand-mark {
-    position: relative;
+.finance-sidebar.collapsed .finance-brand {
+    justify-content: center;
+}
 
+
+.finance-brand-mark {
     width: 38px;
     height: 38px;
     min-width: 38px;
 
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    border-radius: 12px;
+    border-radius: 10px;
 
-    background:
-        linear-gradient(
-            145deg,
-            #3b82f6,
-            #2563eb
-        );
+    background: #2563eb;
+    color: #ffffff;
 
-    box-shadow:
-        0 7px 18px rgba(37, 99, 235, 0.17);
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1;
+
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.18);
 }
 
-.finance-brand-mark::before {
-    content: "";
 
-    width: 16px;
-    height: 12px;
-
-    border: 2px solid rgba(255, 255, 255, 0.95);
-    border-top: 0;
-
-    border-radius: 0 0 6px 6px;
-
-    transform: translateY(1px);
-}
-
-.finance-brand-mark span {
-    position: absolute;
-    bottom: 9px;
-
-    width: 3px;
-
-    border-radius: 999px;
-
-    background: rgba(255, 255, 255, 0.95);
-}
-
-.finance-brand-mark span:nth-child(1) {
-    height: 4px;
-    inset-inline-start: 10px;
-}
-
-.finance-brand-mark span:nth-child(2) {
-    height: 7px;
-    inset-inline-start: 15px;
-}
-
-.finance-brand-mark span:nth-child(3) {
-    height: 10px;
-    inset-inline-start: 20px;
-}
 
 .finance-brand-copy {
     min-width: 0;
@@ -238,7 +221,6 @@
 
 .finance-brand-copy small {
     color: var(--text-muted);
-
     font-size: 8px;
 }
 
@@ -330,11 +312,21 @@
         transform 0.16s ease;
 }
 
+.finance-sidebar.collapsed .finance-nav-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+}
+
 .finance-nav-link:hover {
     background: rgba(148, 163, 184, 0.07);
     color: var(--text-primary);
 
     transform: translateX(2px);
+}
+
+.finance-sidebar.collapsed .finance-nav-link:hover {
+    transform: none;
 }
 
 .finance-nav-link.active {
@@ -367,6 +359,10 @@
     opacity: 0.9;
 
     inset-inline-start: 0;
+}
+
+.finance-sidebar.collapsed .finance-nav-link.active::before {
+    display: none;
 }
 
 .finance-nav-icon {
@@ -492,6 +488,12 @@
     transition:
         background 0.16s ease,
         color 0.16s ease;
+}
+
+.finance-sidebar.collapsed .finance-settings-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
 }
 
 .finance-settings-link:hover,
@@ -790,8 +792,7 @@
 
 .dark .finance-sidebar-brand {
     border-bottom-color: rgba(255, 255, 255, 0.055);
-} 
-
+}
 
 .dark .finance-sidebar-user {
     background: rgba(255, 255, 255, 0.028);
@@ -843,7 +844,6 @@
    RESPONSIVE
    ============================================================ */
 
-
 @media (max-width: 900px) {
     .finance-sidebar {
         width: 205px;
@@ -855,6 +855,14 @@
 
     .personal-layout-content {
         padding: 22px 22px 36px;
+    }
+
+    .personal-layout.sidebar-collapsed .personal-layout-main {
+        margin-inline-start: 66px;
+    }
+
+    .finance-sidebar.collapsed {
+        width: 66px;
     }
 }
 
@@ -880,7 +888,7 @@
     }
 
     .finance-sidebar-toggle {
-        display: none;
+        display: inline-flex;
     }
 
     .finance-brand {

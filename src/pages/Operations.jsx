@@ -1,276 +1,586 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { toast } from "react-toastify";
 import {
-    FaPlus,
-    FaSearch,
-    FaArrowUp,
+    useLocation,
+    useNavigate,
+} from "react-router-dom";
+import {
     FaArrowDown,
+    FaArrowUp,
     FaEdit,
-    FaTrash,
     FaFileExcel,
     FaFilePdf,
+    FaPlus,
+    FaSearch,
+    FaTimes,
+    FaTrash,
 } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 import operationService from "../services/operationService";
 import dashboardService from "../services/dashboardService";
+import categoryService from "../services/categoryService";
 import OperationForm from "../components/operations/OperationForm";
-import TableSkeleton from "../components/common/TableSkeleton";
 import FormatAmount from "../components/common/FormatAmount";
 import FormatDate from "../components/common/FormatDate";
-
+import TableSkeleton from "../components/common/TableSkeleton";
 import { useLanguage } from "../context/LanguageContext";
 import { useSettings } from "../context/SettingsContext";
-import { exportToExcel, exportToPDF } from "../utils/exportUtils";
+import {
+    exportToExcel,
+    exportToPDF,
+} from "../utils/exportUtils";
 
 function Operations() {
     const { language } = useLanguage();
-    const { settings } = useSettings();
     const location = useLocation();
+    const navigate = useNavigate();
+    const { settings } = useSettings();
 
     const isArabic = language === "ar";
 
+    const [activeType, setActiveType] = useState("all");
     const [operations, setOperations] = useState([]);
+    const [categories, setCategories] = useState([]);
+
     const [loading, setLoading] = useState(true);
+    const [loadingCategories, setLoadingCategories] =
+        useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const [showForm, setShowForm] = useState(false);
-    const [selectedOperation, setSelectedOperation] = useState(null);
-    const [operationToDelete, setOperationToDelete] = useState(null);
+    const [selectedOperation, setSelectedOperation] =
+        useState(null);
+    const [operationToDelete, setOperationToDelete] =
+        useState(null);
 
     const [search, setSearch] = useState("");
-    const [typeFilter, setTypeFilter] = useState("all");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
 
-    const [userName, setUserName] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
-    const [stats, setStats] = useState({
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        lastPage: 1,
+        total: 0,
+        perPage: settings.items_per_page || 20,
+        from: null,
+        to: null,
+    });
+
+    const [summary, setSummary] = useState({
         totalIncome: 0,
         totalExpense: 0,
         balance: 0,
         operationsCount: 0,
     });
 
-    const t = {
-        ar: {
-            greeting: "أهلًا بك",
-            subtitle: "تابع أموالك وسجّل عملياتك بسهولة",
-            
-            balance: "رصيدك الحالي",
-            income: "إجمالي الدخل",
-            expense: "إجمالي المصروفات",
+    const text = isArabic
+        ? {
+              title: "العمليات",
+              subtitle: "سجّل دخلك ومصروفاتك بسهولة",
 
-            recent: "عملياتك المالية",
-            operationCount: "عملية",
-            
-            add: "أضف عملية",
-            
-            search: "ابحث في العمليات...",
-            
-            all: "الكل",
-            incomeOnly: "الدخل",
-            expenseOnly: "المصروفات",
-            
-            allOperations: "عرض كل العمليات",
+              all: "كل العمليات",
+              income: "الدخل",
+              expense: "المصروفات",
 
-            noOperations:
-                "لم تسجّل أي عملية مالية بعد.",
-            
-            noResults:
-                "لم نجد عمليات تطابق بحثك أو الفلتر المحدد.",
-            
-            noDescription:
-                "بدون وصف",
+              add: "إضافة عملية",
+              search: "ابحث في العمليات...",
 
-            edit: "تعديل العملية",
-            delete: "حذف العملية",
+              fromDate: "من تاريخ",
+              toDate: "إلى تاريخ",
+              category: "التصنيف",
+              allCategories: "كل التصنيفات",
+              clear: "مسح الفلاتر",
 
-            exportExcel:
-                "تصدير العمليات إلى Excel",
-            exportPDF:
-                "تصدير العمليات إلى PDF",
+              date: "التاريخ",
+              type: "النوع",
+              mainCategory: "التصنيف الرئيسي",
+              subcategory: "التصنيف التفصيلي",
+              amount: "المبلغ",
+              notes: "الملاحظات",
+              actions: "الإجراءات",
 
-            deleteTitle:
-                "حذف العملية؟",
+              incomeLabel: "دخل",
+              expenseLabel: "مصروف",
 
-            deleteConfirm:
-                "هل أنت متأكد من أنك تريد حذف هذه العملية؟",
+              balance: "الرصيد الحالي",
+              totalIncome: "إجمالي الدخل",
+              totalExpense: "إجمالي المصروفات",
 
-            deleteWarning:
-                "سيتم حذف العملية نهائيًا ولن تتمكن من استعادتها بعد ذلك.",
+              operationCount: "عملية",
+              showing: "عرض",
+              of: "من",
 
-            cancel: "إلغاء",
-            confirmDelete: "نعم، احذفها",
-            close: "إغلاق",
+              noOperations:
+                  "لا توجد عمليات مطابقة للفلاتر الحالية.",
+              emptyIncome: "لا توجد عمليات دخل بعد.",
+              emptyExpense: "لا توجد مصروفات بعد.",
 
-            addSuccess:
-                "تمت إضافة العملية بنجاح.",
+              edit: "تعديل",
+              delete: "حذف",
 
-            updateSuccess:
-                "تم تحديث العملية بنجاح.",
+              deleteConfirm: "هل تريد حذف هذه العملية؟",
+              deleteWarning:
+                  "سيتم حذف العملية نهائيًا ولا يمكن استعادتها.",
 
-            deleteSuccess:
-                "تم حذف العملية بنجاح.",
+              cancel: "إلغاء",
+              confirmDelete: "حذف العملية",
 
-            failed:
-                "تعذر تنفيذ العملية. حاول مرة أخرى.",
-        },
+              added: "تمت إضافة العملية بنجاح.",
+              updated: "تم تحديث العملية بنجاح.",
+              deleted: "تم حذف العملية بنجاح.",
 
-        en: {
-            greeting: "Welcome back",
-            subtitle:
-                "Track your money and record your operations with ease",
+              failed: "تعذر تنفيذ العملية.",
 
-            balance: "Your current balance",
-            income: "Total income",
-            expense: "Total expenses",
+              excel: "تصدير Excel",
+              pdf: "تصدير PDF",
+              exporting: "جارٍ التصدير...",
 
-            recent: "Your financial operations",
-            operationCount: "operations",
+              previous: "السابق",
+              next: "التالي",
 
-            add: "Add operation",
+              uncategorized: "بدون تصنيف",
+              nothingToExport:
+                  "لا توجد عمليات لتصديرها.",
+          }
+        : {
+              title: "Operations",
+              subtitle:
+                  "Record your income and expenses easily",
 
-            search: "Search your operations...",
+              all: "All operations",
+              income: "Income",
+              expense: "Expenses",
 
-            all: "All",
-            incomeOnly: "Income",
-            expenseOnly: "Expenses",
+              add: "Add operation",
+              search: "Search operations...",
 
-            allOperations:
-                "View all operations",
+              fromDate: "From date",
+              toDate: "To date",
+              category: "Category",
+              allCategories: "All categories",
+              clear: "Clear filters",
 
-            noOperations:
-                "You haven't recorded any financial operations yet.",
+              date: "Date",
+              type: "Type",
+              mainCategory: "Main category",
+              subcategory: "Detail category",
+              amount: "Amount",
+              notes: "Notes",
+              actions: "Actions",
 
-            noResults:
-                "No operations match your search or selected filter.",
+              incomeLabel: "Income",
+              expenseLabel: "Expense",
 
-            noDescription:
-                "No description",
+              balance: "Current balance",
+              totalIncome: "Total income",
+              totalExpense: "Total expenses",
 
-            edit: "Edit operation",
-            delete: "Delete operation",
+              operationCount: "operations",
+              showing: "Showing",
+              of: "of",
 
-            exportExcel:
-                "Export operations to Excel",
-            exportPDF:
-                "Export operations to PDF",
+              noOperations:
+                  "No operations match the current filters.",
+              emptyIncome: "No income operations yet.",
+              emptyExpense: "No expenses yet.",
 
-            deleteTitle:
-                "Delete this operation?",
+              edit: "Edit",
+              delete: "Delete",
 
-            deleteConfirm:
-                "Are you sure you want to delete this operation?",
+              deleteConfirm: "Delete this operation?",
+              deleteWarning:
+                  "This operation will be permanently deleted.",
 
-            deleteWarning:
-                "This operation will be permanently deleted and cannot be restored.",
+              cancel: "Cancel",
+              confirmDelete: "Delete operation",
 
-            cancel: "Cancel",
-            confirmDelete: "Yes, delete it",
-            close: "Close",
+              added: "Operation added successfully.",
+              updated: "Operation updated successfully.",
+              deleted: "Operation deleted successfully.",
 
-            addSuccess:
-                "Operation added successfully.",
+              failed:
+                  "We couldn't complete the action.",
 
-            updateSuccess:
-                "Operation updated successfully.",
+              excel: "Export Excel",
+              pdf: "Export PDF",
+              exporting: "Exporting...",
 
-            deleteSuccess:
-                "Operation deleted successfully.",
+              previous: "Previous",
+              next: "Next",
 
-            failed:
-                "We couldn't complete that action. Please try again.",
-        },
-    };
-    const lang = isArabic ? t.ar : t.en;
+              uncategorized: "Uncategorized",
+              nothingToExport:
+                  "There are no operations to export.",
+          };
 
     const getCategoryName = (category) => {
-        if (!category) return "-";
+        if (!category) {
+            return text.uncategorized;
+        }
 
         return isArabic
-            ? category.name_ar || category.name_en || "-"
-            : category.name_en || category.name_ar || "-";
+            ? category.name_ar ||
+                  category.name_en ||
+                  text.uncategorized
+            : category.name_en ||
+                  category.name_ar ||
+                  text.uncategorized;
     };
 
-    const loadOperations = async () => {
+    const loadCategories = async () => {
         try {
-            setLoading(true);
+            setLoadingCategories(true);
 
-            const params = {
-                per_page: settings.items_per_page || 15,
-            };
-
-            if (search.trim()) {
-                params.search = search.trim();
-            }
-
-            if (typeFilter !== "all") {
-                params.type = typeFilter;
-            }
-
-            const [operationsResponse, dashboardResponse] =
-                await Promise.all([
-                    operationService.getAll(params),
-                    dashboardService.getDashboard(),
+            if (activeType === "all") {
+                const [
+                    incomeCategories,
+                    expenseCategories,
+                ] = await Promise.all([
+                    categoryService.getByType("income"),
+                    categoryService.getByType("expense"),
                 ]);
 
-            setOperations(
-                operationsResponse?.data?.data || []
+                const merged = [
+                    ...(incomeCategories || []),
+                    ...(expenseCategories || []),
+                ];
+
+                const unique = Array.from(
+                    new Map(
+                        merged.map((category) => [
+                            String(category.id),
+                            category,
+                        ])
+                    ).values()
+                );
+
+                setCategories(unique);
+
+                return;
+            }
+
+            const data =
+                await categoryService.getByType(
+                    activeType
+                );
+
+            setCategories(data || []);
+        } catch (error) {
+            console.error(
+                "Error loading categories:",
+                error
             );
 
-            const dashboardData = dashboardResponse || {};
+            setCategories([]);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
 
-            setUserName(dashboardData.user?.name || "");
+    const loadSummary = async () => {
+        try {
+            const response =
+                await dashboardService.getDashboard();
 
-            setStats({
+            const data = response || {};
+
+            setSummary({
                 totalIncome: Number(
-                    dashboardData.stats?.totalIncome || 0
+                    data.stats?.totalIncome || 0
                 ),
                 totalExpense: Number(
-                    dashboardData.stats?.totalExpense || 0
+                    data.stats?.totalExpense || 0
                 ),
                 balance: Number(
-                    dashboardData.stats?.balance || 0
+                    data.stats?.balance || 0
                 ),
                 operationsCount: Number(
-                    dashboardData.stats?.operationsCount || 0
+                    data.stats?.operationsCount || 0
                 ),
             });
         } catch (error) {
-            console.error("Operations loading error:", error);
+            console.error(
+                "Dashboard summary loading error:",
+                error
+            );
+        }
+    };
+
+    const buildOperationParams = (
+        page = currentPage,
+        perPage = settings.items_per_page || 20
+    ) => {
+        const params = {
+            page,
+            per_page: perPage,
+        };
+
+        if (activeType !== "all") {
+            params.type = activeType;
+        }
+
+        if (search.trim()) {
+            params.search = search.trim();
+        }
+
+        if (dateFrom) {
+            params.date_from = dateFrom;
+        }
+
+        if (dateTo) {
+            params.date_to = dateTo;
+        }
+
+        if (categoryFilter) {
+            params.category_id = categoryFilter;
+        }
+
+        return params;
+    };
+
+    const loadOperations = async (
+        page = currentPage
+    ) => {
+        try {
+            setLoading(true);
+
+            const params =
+                buildOperationParams(page);
+
+            const response =
+                await operationService.getAll(
+                    params
+                );
+
+            const responseData = response?.data || {};
+            const data =
+                responseData.data || [];
+
+            const meta =
+                responseData.meta ||
+                responseData;
+
+            setOperations(data);
+
+            setPagination({
+                currentPage:
+                    Number(
+                        meta.current_page ??
+                            page
+                    ),
+                lastPage:
+                    Number(
+                        meta.last_page ?? 1
+                    ),
+                total:
+                    Number(
+                        meta.total ??
+                            data.length
+                    ),
+                perPage:
+                    Number(
+                        meta.per_page ??
+                            params.per_page
+                    ),
+                from:
+                    meta.from ?? null,
+                to:
+                    meta.to ?? null,
+            });
+        } catch (error) {
+            console.error(
+                "Operations loading error:",
+                error
+            );
 
             toast.error(
-                error.response?.data?.message || lang.failed
+                error?.response?.data?.message ||
+                    text.failed
             );
         } finally {
             setLoading(false);
         }
     };
 
+    const loadAllFilteredOperations =
+        async () => {
+            const baseParams =
+                buildOperationParams(
+                    1,
+                    500
+                );
+
+            const firstResponse =
+                await operationService.getAll(
+                    baseParams
+                );
+
+            const firstData =
+                firstResponse?.data || {};
+
+            let allOperations =
+                firstData.data || [];
+
+            const firstMeta =
+                firstData.meta ||
+                firstData;
+
+            const lastPage = Number(
+                firstMeta.last_page || 1
+            );
+
+            if (lastPage <= 1) {
+                return allOperations;
+            }
+
+            for (
+                let page = 2;
+                page <= lastPage;
+                page += 1
+            ) {
+                const response =
+                    await operationService.getAll({
+                        ...baseParams,
+                        page,
+                    });
+
+                const pageData =
+                    response?.data?.data || [];
+
+                allOperations = [
+                    ...allOperations,
+                    ...pageData,
+                ];
+            }
+
+            return allOperations;
+        };
+
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+
+            const data =
+                await loadAllFilteredOperations();
+
+            if (!data.length) {
+                toast.info(text.nothingToExport);
+                return;
+            }
+
+            exportToExcel(
+                data,
+                "operations"
+            );
+        } catch (error) {
+            console.error(
+                "Excel export error:",
+                error
+            );
+
+            toast.error(text.failed);
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleExportPDF = async () => {
+        try {
+            setExporting(true);
+
+            const data =
+                await loadAllFilteredOperations();
+
+            if (!data.length) {
+                toast.info(text.nothingToExport);
+                return;
+            }
+
+            exportToPDF(
+                data,
+                "operations"
+            );
+        } catch (error) {
+            console.error(
+                "PDF export error:",
+                error
+            );
+
+            toast.error(text.failed);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     useEffect(() => {
-        const timer = setTimeout(loadOperations, 250);
+        loadCategories();
+    }, [activeType]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadOperations(currentPage);
+        }, 250);
 
         return () => clearTimeout(timer);
     }, [
+        activeType,
         search,
-        typeFilter,
+        dateFrom,
+        dateTo,
+        categoryFilter,
+        currentPage,
         settings.items_per_page,
     ]);
 
     useEffect(() => {
-        const params = new URLSearchParams(location.search);
+        loadSummary();
+    }, []);
 
-        if (
+    useEffect(() => {
+        const params = new URLSearchParams(
+            location.search
+        );
+
+        const shouldOpen =
             params.get("action") === "create" ||
-            params.get("openForm") === "true"
-        ) {
-            setSelectedOperation(null);
-            setShowForm(true);
-        }
-    }, [location]);
+            params.get("openForm") === "true" ||
+            location.state?.openCreate === true;
 
-    const closeForm = () => {
-        setShowForm(false);
+        if (!shouldOpen) {
+            return;
+        }
+
         setSelectedOperation(null);
+        setShowForm(true);
+
+        navigate(
+            location.pathname,
+            {
+                replace: true,
+                state: {},
+            }
+        );
+    }, [
+        location,
+        navigate,
+    ]);
+
+    const clearFilters = () => {
+        setSearch("");
+        setDateFrom("");
+        setDateTo("");
+        setCategoryFilter("");
+        setCurrentPage(1);
     };
+
+    const hasFilters =
+        Boolean(search.trim()) ||
+        Boolean(dateFrom) ||
+        Boolean(dateTo) ||
+        Boolean(categoryFilter);
 
     const openCreateForm = () => {
         setSelectedOperation(null);
@@ -282,6 +592,11 @@ function Operations() {
         setShowForm(true);
     };
 
+    const closeForm = () => {
+        setShowForm(false);
+        setSelectedOperation(null);
+    };
+
     const handleSave = async (data) => {
         try {
             if (selectedOperation) {
@@ -290,20 +605,28 @@ function Operations() {
                     data
                 );
 
-                toast.success(lang.updateSuccess);
+                toast.success(text.updated);
             } else {
                 await operationService.create(data);
 
-                toast.success(lang.addSuccess);
+                toast.success(text.added);
             }
 
             closeForm();
-            await loadOperations();
+
+            await Promise.all([
+                loadOperations(currentPage),
+                loadSummary(),
+            ]);
         } catch (error) {
-            console.error("Operation save error:", error);
+            console.error(
+                "Operation save error:",
+                error
+            );
 
             toast.error(
-                error.response?.data?.message || lang.failed
+                error?.response?.data?.message ||
+                    text.failed
             );
 
             throw error;
@@ -311,33 +634,112 @@ function Operations() {
     };
 
     const handleDelete = async () => {
-        if (!operationToDelete) return;
+        if (!operationToDelete) {
+            return;
+        }
 
         try {
             await operationService.delete(
                 operationToDelete.id
             );
 
-            toast.success(lang.deleteSuccess);
+            toast.success(text.deleted);
+
             setOperationToDelete(null);
 
-            await loadOperations();
+            await loadSummary();
+
+            if (
+                operations.length === 1 &&
+                currentPage > 1
+            ) {
+                setCurrentPage(
+                    (page) => page - 1
+                );
+            } else {
+                await loadOperations(
+                    currentPage
+                );
+            }
         } catch (error) {
-            console.error("Operation delete error:", error);
+            console.error(
+                "Operation delete error:",
+                error
+            );
 
             toast.error(
-                error.response?.data?.message || lang.failed
+                error?.response?.data?.message ||
+                    text.failed
             );
         }
     };
 
-    if (loading && operations.length === 0) {
+    const goToPage = (page) => {
+        if (
+            page < 1 ||
+            page > pagination.lastPage ||
+            page === currentPage
+        ) {
+            return;
+        }
+
+        setCurrentPage(page);
+    };
+
+    const handleSearchChange = (value) => {
+        setSearch(value);
+        setCurrentPage(1);
+    };
+
+    const handleDateFromChange = (value) => {
+        setDateFrom(value);
+        setCurrentPage(1);
+    };
+
+    const handleDateToChange = (value) => {
+        setDateTo(value);
+        setCurrentPage(1);
+    };
+
+    const handleCategoryChange = (value) => {
+        setCategoryFilter(value);
+        setCurrentPage(1);
+    };
+
+    const selectType = (type) => {
+        setActiveType(type);
+        setCategoryFilter("");
+        setCurrentPage(1);
+    };
+
+    const selectedOperationType =
+        selectedOperation?.type ||
+        (activeType === "all"
+            ? "expense"
+            : activeType);
+
+    const emptyMessage =
+        activeType === "income"
+            ? text.emptyIncome
+            : activeType === "expense"
+              ? text.emptyExpense
+              : text.noOperations;
+
+    if (
+        loading &&
+        operations.length === 0
+    ) {
         return (
             <div
                 className="personal-finance-page"
-                dir={isArabic ? "rtl" : "ltr"}
+                dir={
+                    isArabic ? "rtl" : "ltr"
+                }
             >
-                <TableSkeleton rows={5} columns={4} />
+                <TableSkeleton
+                    rows={6}
+                    columns={7}
+                />
             </div>
         );
     }
@@ -347,15 +749,13 @@ function Operations() {
             className="personal-finance-page"
             dir={isArabic ? "rtl" : "ltr"}
         >
-            {/* Intro */}
             <header className="finance-intro">
                 <div>
                     <div className="finance-greeting">
-                        {lang.greeting}
-                        {userName ? `، ${userName}` : ""}
+                        {text.title}
                     </div>
 
-                    <h1>{lang.subtitle}</h1>
+                    <h1>{text.subtitle}</h1>
                 </div>
 
                 <button
@@ -364,20 +764,22 @@ function Operations() {
                     onClick={openCreateForm}
                 >
                     <FaPlus size={11} />
-                    {lang.add}
+                    {text.add}
                 </button>
             </header>
 
-            {/* Balance */}
+            {/* ملخص الحساب */}
             <section className="finance-balance">
                 <div>
                     <div className="finance-balance-caption">
-                        {lang.balance}
+                        {text.balance}
                     </div>
 
                     <div className="finance-balance-number">
                         <FormatAmount
-                            value={stats.balance}
+                            value={
+                                summary.balance
+                            }
                         />
                     </div>
                 </div>
@@ -385,260 +787,502 @@ function Operations() {
                 <div className="finance-balance-side">
                     <div>
                         <span className="income-dot" />
-                        <span>{lang.income}</span>
+
+                        <span>
+                            {text.totalIncome}
+                        </span>
 
                         <strong>
                             <FormatAmount
-                                value={stats.totalIncome}
+                                value={
+                                    summary.totalIncome
+                                }
                             />
                         </strong>
                     </div>
 
                     <div>
                         <span className="expense-dot" />
-                        <span>{lang.expense}</span>
+
+                        <span>
+                            {text.totalExpense}
+                        </span>
 
                         <strong>
                             <FormatAmount
-                                value={stats.totalExpense}
+                                value={
+                                    summary.totalExpense
+                                }
                             />
                         </strong>
                     </div>
                 </div>
             </section>
 
-            {/* Recent operations */}
-            <section className="finance-recent">
-                <div className="finance-recent-header">
-                    <div>
-                        <h2>{lang.recent}</h2>
+            {/* نوع العملية */}
+            <div className="operations-type-tabs">
+                <button
+                    type="button"
+                    className={
+                        activeType === "all"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        selectType("all")
+                    }
+                >
+                    {text.all}
+                </button>
 
-                        <span>
-                            {stats.operationsCount}{" "}
-                            {lang.operationCount}
-                        </span>
-                    </div>
+                <button
+                    type="button"
+                    className={
+                        activeType === "expense"
+                            ? "active expense"
+                            : ""
+                    }
+                    onClick={() =>
+                        selectType("expense")
+                    }
+                >
+                    <FaArrowDown />
+                    {text.expense}
+                </button>
+
+                <button
+                    type="button"
+                    className={
+                        activeType === "income"
+                            ? "active income"
+                            : ""
+                    }
+                    onClick={() =>
+                        selectType("income")
+                    }
+                >
+                    <FaArrowUp />
+                    {text.income}
+                </button>
+            </div>
+
+            {/* الفلاتر */}
+            <section className="operations-toolbar">
+                <div className="operations-search">
+                    <FaSearch size={11} />
+
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(event) =>
+                            handleSearchChange(
+                                event.target.value
+                            )
+                        }
+                        placeholder={
+                            text.search
+                        }
+                    />
+                </div>
+
+                <div className="operations-filter">
+                    <label>
+                        {text.fromDate}
+                    </label>
+
+                    <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(event) =>
+                            handleDateFromChange(
+                                event.target.value
+                            )
+                        }
+                    />
+                </div>
+
+                <div className="operations-filter">
+                    <label>
+                        {text.toDate}
+                    </label>
+
+                    <input
+                        type="date"
+                        value={dateTo}
+                        min={
+                            dateFrom ||
+                            undefined
+                        }
+                        onChange={(event) =>
+                            handleDateToChange(
+                                event.target.value
+                            )
+                        }
+                    />
+                </div>
+
+                <div className="operations-filter">
+                    <label>
+                        {text.category}
+                    </label>
+
+                    <select
+                        value={categoryFilter}
+                        onChange={(event) =>
+                            handleCategoryChange(
+                                event.target.value
+                            )
+                        }
+                        disabled={
+                            loadingCategories
+                        }
+                    >
+                        <option value="">
+                            {loadingCategories
+                                ? "..."
+                                : text.allCategories}
+                        </option>
+
+                        {categories.map(
+                            (category) => (
+                                <option
+                                    key={
+                                        category.id
+                                    }
+                                    value={
+                                        category.id
+                                    }
+                                >
+                                    {getCategoryName(
+                                        category
+                                    )}
+                                </option>
+                            )
+                        )}
+                    </select>
+                </div>
+
+                {hasFilters && (
+                    <button
+                        type="button"
+                        className="operations-clear"
+                        onClick={
+                            clearFilters
+                        }
+                        title={text.clear}
+                    >
+                        <FaTimes size={10} />
+                        {text.clear}
+                    </button>
+                )}
+
+                <div className="finance-export">
+                    <button
+                        type="button"
+                        title={text.excel}
+                        onClick={
+                            handleExportExcel
+                        }
+                        disabled={exporting}
+                    >
+                        <FaFileExcel
+                            size={11}
+                        />
+                    </button>
 
                     <button
                         type="button"
-                        className="finance-view-all"
-                        onClick={() => {
-                            setSearch("");
-                            setTypeFilter("all");
-                        }}
+                        title={text.pdf}
+                        onClick={
+                            handleExportPDF
+                        }
+                        disabled={exporting}
                     >
-                        {lang.allOperations}
-                    </button>
-                </div>
-
-                {/* Tools */}
-                <div className="finance-toolbar">
-                    <div className="finance-search">
-                        <FaSearch size={11} />
-
-                        <input
-                            type="search"
-                            value={search}
-                            onChange={(event) =>
-                                setSearch(event.target.value)
-                            }
-                            placeholder={lang.search}
+                        <FaFilePdf
+                            size={11}
                         />
-                    </div>
-
-                    <div className="finance-filter">
-                        <button
-                            type="button"
-                            className={
-                                typeFilter === "all"
-                                    ? "active"
-                                    : ""
-                            }
-                            onClick={() =>
-                                setTypeFilter("all")
-                            }
-                        >
-                            {lang.all}
-                        </button>
-
-                        <button
-                            type="button"
-                            className={
-                                typeFilter === "income"
-                                    ? "active"
-                                    : ""
-                            }
-                            onClick={() =>
-                                setTypeFilter("income")
-                            }
-                        >
-                            {lang.incomeOnly}
-                        </button>
-
-                        <button
-                            type="button"
-                            className={
-                                typeFilter === "expense"
-                                    ? "active"
-                                    : ""
-                            }
-                            onClick={() =>
-                                setTypeFilter("expense")
-                            }
-                        >
-                            {lang.expenseOnly}
-                        </button>
-                    </div>
-
-                    <div className="finance-export">
-                        <button
-                            type="button"
-                            title={lang.exportExcel}
-                            onClick={() =>
-                                exportToExcel(
-                                    operations,
-                                    "operations"
-                                )
-                            }
-                        >
-                            <FaFileExcel size={11} />
-                        </button>
-
-                        <button
-                            type="button"
-                            title={lang.exportPDF}
-                            onClick={() =>
-                                exportToPDF(
-                                    operations,
-                                    "operations"
-                                )
-                            }
-                        >
-                            <FaFilePdf size={11} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* List */}
-                <div className="finance-list">
-                    {operations.length === 0 ? (
-                        <div className="finance-empty-state">
-                            <strong>
-                                {search.trim() ||
-                                typeFilter !== "all"
-                                    ? lang.noResults
-                                    : lang.noOperations}
-                            </strong>
-                        </div>
-                    ) : (
-                        operations.map((operation) => {
-                            const isIncome =
-                                operation.type === "income";
-
-                            return (
-                                <article
-                                    key={operation.id}
-                                    className="finance-item"
-                                >
-                                    <div
-                                        className={`finance-item-icon ${
-                                            isIncome
-                                                ? "income"
-                                                : "expense"
-                                        }`}
-                                    >
-                                        {isIncome ? (
-                                            <FaArrowUp />
-                                        ) : (
-                                            <FaArrowDown />
-                                        )}
-                                    </div>
-
-                                    <div className="finance-item-content">
-                                        <div className="finance-item-name">
-                                            {getCategoryName(
-                                                operation.category
-                                            )}
-                                        </div>
-
-                                        <div className="finance-item-details">
-                                            <FormatDate
-                                                value={
-                                                    operation.operation_date
-                                                }
-                                            />
-
-                                            {operation.description && (
-                                                <>
-                                                    <span>·</span>
-                                                    <span>
-                                                        {
-                                                            operation.description
-                                                        }
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className={`finance-item-amount ${
-                                            isIncome
-                                                ? "income"
-                                                : "expense"
-                                        }`}
-                                    >
-                                        {isIncome ? "+" : "-"}{" "}
-                                        <FormatAmount
-                                            value={
-                                                operation.amount
-                                            }
-                                        />
-                                    </div>
-
-                                    <div className="finance-item-actions">
-                                        <button
-                                            type="button"
-                                            title={lang.edit}
-                                            onClick={() =>
-                                                openEditForm(
-                                                    operation
-                                                )
-                                            }
-                                        >
-                                            <FaEdit size={10} />
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            title={lang.delete}
-                                            onClick={() =>
-                                                setOperationToDelete(
-                                                    operation
-                                                )
-                                            }
-                                        >
-                                            <FaTrash size={9} />
-                                        </button>
-                                    </div>
-                                </article>
-                            );
-                        })
-                    )}
+                    </button>
                 </div>
             </section>
 
-            {/* Form */}
+            {/* الجدول */}
+            <section className="operations-table-wrapper">
+                {operations.length === 0 ? (
+                    <div className="finance-empty-state">
+                        <strong>
+                            {emptyMessage}
+                        </strong>
+
+                        {!hasFilters && (
+                            <button
+                                type="button"
+                                className="finance-primary-button"
+                                onClick={
+                                    openCreateForm
+                                }
+                            >
+                                <FaPlus />
+                                {text.add}
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="operations-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        {text.date}
+                                    </th>
+                                    <th>
+                                        {text.type}
+                                    </th>
+                                    <th>
+                                        {
+                                            text.mainCategory
+                                        }
+                                    </th>
+                                    <th>
+                                        {
+                                            text.subcategory
+                                        }
+                                    </th>
+                                    <th>
+                                        {text.amount}
+                                    </th>
+                                    <th>
+                                        {text.notes}
+                                    </th>
+                                    <th>
+                                        {
+                                            text.actions
+                                        }
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {operations.map(
+                                    (
+                                        operation
+                                    ) => {
+                                        const isIncome =
+                                            operation.type ===
+                                            "income";
+
+                                        return (
+                                            <tr
+                                                key={
+                                                    operation.id
+                                                }
+                                            >
+                                                <td>
+                                                    <FormatDate
+                                                        value={
+                                                            operation.operation_date
+                                                        }
+                                                    />
+                                                </td>
+
+                                                <td>
+                                                    <span
+                                                        className={`operation-type-badge ${
+                                                            isIncome
+                                                                ? "income"
+                                                                : "expense"
+                                                        }`}
+                                                    >
+                                                        {isIncome ? (
+                                                            <FaArrowUp />
+                                                        ) : (
+                                                            <FaArrowDown />
+                                                        )}
+
+                                                        {isIncome
+                                                            ? text.incomeLabel
+                                                            : text.expenseLabel}
+                                                    </span>
+                                                </td>
+
+                                                <td>
+                                                    <div className="operation-category-main">
+                                                        {isIncome
+                                                            ? text.income
+                                                            : text.expense}
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div className="operation-category-sub">
+                                                        {getCategoryName(
+                                                            operation.category
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div
+                                                        className={`operation-amount ${
+                                                            isIncome
+                                                                ? "income"
+                                                                : "expense"
+                                                        }`}
+                                                    >
+                                                        {isIncome
+                                                            ? "+"
+                                                            : "-"}{" "}
+                                                        <FormatAmount
+                                                            value={
+                                                                operation.amount
+                                                            }
+                                                        />
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div className="operation-notes">
+                                                        {operation.description ||
+                                                            "—"}
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div className="operation-row-actions">
+                                                        <button
+                                                            type="button"
+                                                            title={
+                                                                text.edit
+                                                            }
+                                                            onClick={() =>
+                                                                openEditForm(
+                                                                    operation
+                                                                )
+                                                            }
+                                                        >
+                                                            <FaEdit
+                                                                size={
+                                                                    10
+                                                                }
+                                                            />
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            title={
+                                                                text.delete
+                                                            }
+                                                            onClick={() =>
+                                                                setOperationToDelete(
+                                                                    operation
+                                                                )
+                                                            }
+                                                        >
+                                                            <FaTrash
+                                                                size={
+                                                                    9
+                                                                }
+                                                            />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* Pagination */}
+            {pagination.lastPage > 1 && (
+                <div className="operations-pagination">
+                    <button
+                        type="button"
+                        disabled={
+                            currentPage ===
+                                1 ||
+                            loading
+                        }
+                        onClick={() =>
+                            goToPage(
+                                currentPage - 1
+                            )
+                        }
+                    >
+                        {text.previous}
+                    </button>
+
+                    <span>
+                        {currentPage}{" "}
+                        {text.of}{" "}
+                        {pagination.lastPage}
+                    </span>
+
+                    <button
+                        type="button"
+                        disabled={
+                            currentPage >=
+                                pagination.lastPage ||
+                            loading
+                        }
+                        onClick={() =>
+                            goToPage(
+                                currentPage + 1
+                            )
+                        }
+                    >
+                        {text.next}
+                    </button>
+                </div>
+            )}
+
+            {/* نموذج الإضافة والتعديل */}
             {showForm && (
                 <div
                     className="system-modal-backdrop"
                     onClick={closeForm}
                 >
                     <div
+                        className="system-modal operation-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+                        <div className="system-modal-body">
+                            <OperationForm
+                                operation={
+                                    selectedOperation
+                                }
+                                initialType={
+                                    selectedOperationType
+                                }
+                                onSave={handleSave}
+                                onCancel={
+                                    closeForm
+                                }
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* حذف */}
+            {operationToDelete && (
+                <div
+                    className="system-modal-backdrop"
+                    onClick={() =>
+                        setOperationToDelete(
+                            null
+                        )
+                    }
+                >
+                    <div
                         className="system-modal"
                         style={{
-                            maxWidth: "700px",
-                            width: "100%",
+                            maxWidth:
+                                "420px",
                         }}
                         onClick={(event) =>
                             event.stopPropagation()
@@ -646,48 +1290,10 @@ function Operations() {
                     >
                         <div className="system-modal-header">
                             <h3>
-                                {selectedOperation
-                                    ? lang.edit
-                                    : lang.add}
+                                {
+                                    text.deleteConfirm
+                                }
                             </h3>
-
-                            <button
-                                type="button"
-                                className="modal-close"
-                                onClick={closeForm}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="system-modal-body">
-                            <OperationForm
-                                operation={selectedOperation}
-                                onSave={handleSave}
-                                onCancel={closeForm}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete */}
-            {operationToDelete && (
-                <div
-                    className="system-modal-backdrop"
-                    onClick={() =>
-                        setOperationToDelete(null)
-                    }
-                >
-                    <div
-                        className="system-modal"
-                        style={{ maxWidth: "420px" }}
-                        onClick={(event) =>
-                            event.stopPropagation()
-                        }
-                    >
-                        <div className="system-modal-header">
-                            <h3>{lang.deleteTitle}</h3>
 
                             <button
                                 type="button"
@@ -703,12 +1309,10 @@ function Operations() {
                         </div>
 
                         <div className="system-modal-body">
-                            <p className="finance-delete-title">
-                                {lang.deleteConfirm}
-                            </p>
-
-                            <p className="finance-delete-text">
-                                {lang.deleteWarning}
+                            <p>
+                                {
+                                    text.deleteWarning
+                                }
                             </p>
                         </div>
 
@@ -722,15 +1326,19 @@ function Operations() {
                                     )
                                 }
                             >
-                                {lang.cancel}
+                                {text.cancel}
                             </button>
 
                             <button
                                 type="button"
                                 className="btn btn-danger"
-                                onClick={handleDelete}
+                                onClick={
+                                    handleDelete
+                                }
                             >
-                                {lang.confirmDelete}
+                                {
+                                    text.confirmDelete
+                                }
                             </button>
                         </div>
                     </div>

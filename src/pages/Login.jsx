@@ -54,7 +54,7 @@ function Login() {
     const [showPassword, setShowPassword] = useState(false);
 
     const { login } = useContext(AuthContext);
-    const { t, language } = useLanguage();
+    const { language } = useLanguage();
     const { isDark, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
@@ -62,38 +62,100 @@ function Login() {
 
     const text = isArabic
         ? {
-              access: "تسجيل الدخول",
-              accessKicker: "الوصول إلى حسابك",
-              description: "أدخل بيانات حسابك للوصول إلى إدارة أموالك وعملياتك.",
-              welcomeTitle: "إدارة مالية أوضح وأسهل",
+              brandName: "إدارة أموالي",
+              brandSubtitle: "مدير مالي شخصي",
+
+              accessTitle: "مرحبًا بعودتك",
+              accessDescription:
+                  "سجّل دخولك لتتابع أموالك وعملياتك بسهولة.",
+
+              welcomeTitle: "إدارة أموالك بطريقة أبسط",
               welcomeDescription:
                   "سجّل دخلك ومصروفاتك، تابع رصيدك، ونظّم عملياتك المالية في مكان واحد.",
+
               featureOne: "تسجيل الدخل والمصروفات",
-              featureTwo: "تصنيفات رئيسية وفرعية",
+              featureTwo: "تنظيم العمليات حسب التصنيفات",
               featureThree: "متابعة الرصيد والعمليات",
+
+              signIn: "تسجيل الدخول",
               signInLoading: "جارٍ تسجيل الدخول...",
+
+              email: "البريد الإلكتروني",
+              emailPlaceholder: "name@example.com",
+
+              password: "كلمة المرور",
+              forgotPassword: "نسيت كلمة المرور؟",
+
               or: "أو",
-              createDescription: "ليس لديك حساب؟ أنشئ حسابًا جديدًا وابدأ بإدارة عملياتك.",
+
+              noAccount: "ليس لديك حساب؟",
+              createDescription:
+                  "أنشئ حسابك وابدأ بتنظيم أموالك بسهولة.",
+              createAccount: "إنشاء حساب",
+
               security:
-                  "بيانات حسابك وعملياتك محمية من خلال تسجيل دخول آمن وصلاحيات وصول مناسبة.",
+                  "بيانات حسابك وعملياتك محمية من خلال تسجيل دخول آمن.",
+
+              emptyFields:
+                  "يرجى إدخال البريد الإلكتروني وكلمة المرور.",
+              loginError:
+                  "تعذر تسجيل الدخول. تحقق من بياناتك وحاول مرة أخرى.",
+
+              lightMode: "الوضع الفاتح",
+              darkMode: "الوضع الداكن",
+              activateLight: "تفعيل الوضع الفاتح",
+              activateDark: "تفعيل الوضع الداكن",
+
+              showPassword: "إظهار كلمة المرور",
+              hidePassword: "إخفاء كلمة المرور",
           }
         : {
-              access: "Sign in",
-              accessKicker: "ACCOUNT ACCESS",
-              description:
-                  "Enter your account details to manage your finances and operations.",
-              welcomeTitle: "Simple and clear financial management",
+              brandName: "My Finances",
+              brandSubtitle: "Personal Finance",
+
+              accessTitle: "Welcome back",
+              accessDescription:
+                  "Sign in to keep track of your money and operations with ease.",
+
+              welcomeTitle: "Manage your money with clarity",
               welcomeDescription:
-                  "Track income and expenses, monitor your balance, and organize your financial operations in one place.",
+                  "Record income and expenses, keep track of your balance, and organize your financial activity in one place.",
+
               featureOne: "Record income and expenses",
-              featureTwo: "Main and subcategory organization",
-              featureThree: "Track balance and operations",
+              featureTwo: "Organize operations by category",
+              featureThree: "Keep track of your balance and activity",
+
+              signIn: "Sign in",
               signInLoading: "Signing in...",
+
+              email: "Email",
+              emailPlaceholder: "name@example.com",
+
+              password: "Password",
+              forgotPassword: "Forgot your password?",
+
               or: "OR",
+
+              noAccount: "Don't have an account?",
               createDescription:
-                  "Don't have an account? Create one and start managing your operations.",
+                  "Create your account and start organizing your money with ease.",
+              createAccount: "Create account",
+
               security:
-                  "Your account and financial data are protected through secure authentication and access controls.",
+                  "Your account and financial data are protected through secure sign-in.",
+
+              emptyFields:
+                  "Please enter your email and password.",
+              loginError:
+                  "Unable to sign in. Please check your details and try again.",
+
+              lightMode: "Light mode",
+              darkMode: "Dark mode",
+              activateLight: "Switch to light mode",
+              activateDark: "Switch to dark mode",
+
+              showPassword: "Show password",
+              hidePassword: "Hide password",
           };
 
     const updateField = (field, value) => {
@@ -112,11 +174,7 @@ function Login() {
         const password = form.password;
 
         if (!email || !password) {
-            setError(
-                isArabic
-                    ? "يرجى إدخال البريد الإلكتروني وكلمة المرور."
-                    : "Please enter your email and password."
-            );
+            setError(text.emptyFields);
             return;
         }
 
@@ -138,12 +196,7 @@ function Login() {
 
             const message = requestError.response?.data?.message;
 
-            setError(
-                message ||
-                    (isArabic
-                        ? "تعذر تسجيل الدخول. تحقق من بياناتك وحاول مرة أخرى."
-                        : "Unable to sign in. Please check your credentials and try again.")
-            );
+            setError(message || text.loginError);
         } finally {
             setLoading(false);
         }
@@ -164,7 +217,7 @@ function Login() {
     };
 
     return (
-        <div className="auth-page">
+        <div className="auth-page" dir={isArabic ? "rtl" : "ltr"}>
             <div
                 className="auth-language-switcher"
                 style={{
@@ -180,26 +233,18 @@ function Login() {
                     onClick={toggleTheme}
                     className="btn"
                     style={iconButtonStyle}
-                    title={
-                        isDark
-                            ? isArabic
-                                ? "الوضع الفاتح"
-                                : "Light mode"
-                            : isArabic
-                              ? "الوضع الداكن"
-                              : "Dark mode"
-                    }
+                    title={isDark ? text.lightMode : text.darkMode}
                     aria-label={
                         isDark
-                            ? isArabic
-                                ? "تفعيل الوضع الفاتح"
-                                : "Switch to light mode"
-                            : isArabic
-                              ? "تفعيل الوضع الداكن"
-                              : "Switch to dark mode"
+                            ? text.activateLight
+                            : text.activateDark
                     }
                 >
-                    {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+                    {isDark ? (
+                        <FaSun size={16} />
+                    ) : (
+                        <FaMoon size={16} />
+                    )}
                 </button>
             </div>
 
@@ -210,20 +255,18 @@ function Login() {
 
                         <div>
                             <div className="auth-system-name">
-                                {t("app.name")}
+                                {text.brandName}
                             </div>
 
                             <div className="auth-system-subtitle">
-                                {t("app.subtitle")}
+                                {text.brandSubtitle}
                             </div>
                         </div>
                     </div>
 
                     <div className="auth-brand-content">
                         <div className="auth-eyebrow">
-                            {isArabic
-                                ? "إدارة مالية شخصية"
-                                : "PERSONAL FINANCE MANAGEMENT"}
+                            {text.brandSubtitle}
                         </div>
 
                         <h1>{text.welcomeTitle}</h1>
@@ -252,12 +295,12 @@ function Login() {
                 <section className="auth-form-panel">
                     <div className="auth-form-header">
                         <span className="auth-form-kicker">
-                            {text.accessKicker}
+                            {text.brandName}
                         </span>
 
-                        <h2>{text.access}</h2>
+                        <h2>{text.accessTitle}</h2>
 
-                        <p>{text.description}</p>
+                        <p>{text.accessDescription}</p>
                     </div>
 
                     {error && (
@@ -273,7 +316,7 @@ function Login() {
                     <form onSubmit={handleLogin} noValidate>
                         <div className="auth-field">
                             <label htmlFor="login-email">
-                                {t("auth.email")}
+                                {text.email}
                             </label>
 
                             <input
@@ -287,11 +330,7 @@ function Login() {
                                     )
                                 }
                                 autoComplete="email"
-                                placeholder={
-                                    isArabic
-                                        ? "name@example.com"
-                                        : "name@example.com"
-                                }
+                                placeholder={text.emailPlaceholder}
                                 disabled={loading}
                                 required
                             />
@@ -300,11 +339,11 @@ function Login() {
                         <div className="auth-field">
                             <div className="auth-field-header">
                                 <label htmlFor="login-password">
-                                    {t("auth.password")}
+                                    {text.password}
                                 </label>
 
                                 <Link to="/forgot-password">
-                                    {t("auth.forgotPassword")}
+                                    {text.forgotPassword}
                                 </Link>
                             </div>
 
@@ -348,17 +387,15 @@ function Login() {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setShowPassword((current) => !current)
+                                        setShowPassword(
+                                            (current) => !current
+                                        )
                                     }
                                     disabled={loading}
                                     aria-label={
                                         showPassword
-                                            ? isArabic
-                                                ? "إخفاء كلمة المرور"
-                                                : "Hide password"
-                                            : isArabic
-                                              ? "إظهار كلمة المرور"
-                                              : "Show password"
+                                            ? text.hidePassword
+                                            : text.showPassword
                                     }
                                     style={{
                                         background: "none",
@@ -393,7 +430,7 @@ function Login() {
                                     {text.signInLoading}
                                 </span>
                             ) : (
-                                t("auth.signIn")
+                                text.signIn
                             )}
                         </button>
                     </form>
@@ -404,7 +441,7 @@ function Login() {
 
                     <div className="auth-register-box">
                         <div>
-                            <strong>{t("auth.noAccount")}</strong>
+                            <strong>{text.noAccount}</strong>
                             <span>{text.createDescription}</span>
                         </div>
 
@@ -412,7 +449,7 @@ function Login() {
                             to="/register"
                             className="auth-secondary-button"
                         >
-                            {t("auth.createAccount")}
+                            {text.createAccount}
                         </Link>
                     </div>
 

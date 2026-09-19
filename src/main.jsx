@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "react-toastify/dist/ReactToastify.css";
@@ -16,27 +17,28 @@ import "./styles/auth.css";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import { ToastContainer } from "react-toastify";
+import { SettingsProvider } from "./context/SettingsContext";
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
         <BrowserRouter>
             <LanguageProvider>
                 <ThemeProvider>
                     <AuthProvider>
-                        <App />
-                        <ToastContainer
-                            position="top-right"
-                            autoClose={3000}
-                            hideProgressBar={false}
-                            newestOnTop={false}
-                            closeOnClick
-                            rtl={false}
-                            pauseOnFocusLoss
-                            draggable
-                            pauseOnHover
-                            theme="light"
-                        />
+                        <SettingsProvider>
+                            <App />
+
+                            <ToastContainer
+                                position="top-right"
+                                autoClose={3000}
+                                hideProgressBar={false}
+                                newestOnTop={false}
+                                closeOnClick
+                                pauseOnFocusLoss
+                                draggable
+                                pauseOnHover
+                            />
+                        </SettingsProvider>
                     </AuthProvider>
                 </ThemeProvider>
             </LanguageProvider>

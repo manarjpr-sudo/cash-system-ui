@@ -58,57 +58,105 @@ function Register() {
 
     const navigate = useNavigate();
     const { login } = useContext(AuthContext);
-    const { t, language } = useLanguage();
+    const { language } = useLanguage();
     const { isDark, toggleTheme } = useTheme();
 
     const isArabic = language === "ar";
 
     const text = isArabic
         ? {
-              kicker: "إنشاء حساب",
-              title: "أنشئ حسابك",
+              brandName: "إدارة أموالي",
+              brandSubtitle: "مدير مالي شخصي",
+
+              formKicker: "إنشاء حساب",
+              title: "ابدأ من هنا",
               description:
-                  "أنشئ حسابًا جديدًا وابدأ مباشرة بإدارة دخلك ومصروفاتك.",
-              welcomeKicker: "إدارة مالية شخصية",
-              welcomeTitle: "ابدأ بتنظيم أموالك بسهولة",
+                  "أنشئ حسابك وابدأ بتنظيم أموالك وعملياتك المالية بسهولة.",
+
+              welcomeKicker: "مدير مالي شخصي",
+              welcomeTitle: "رتّب أموالك بطريقة أبسط",
               welcomeDescription:
                   "سجّل دخلك ومصروفاتك، نظّم عملياتك حسب التصنيفات، وتابع رصيدك في مكان واحد.",
+
               featureOne: "تسجيل الدخل والمصروفات",
-              featureTwo: "تصنيفات رئيسية وفرعية",
+              featureTwo: "تنظيم العمليات حسب التصنيف",
               featureThree: "متابعة الرصيد والعمليات",
+
+              name: "الاسم",
+              email: "البريد الإلكتروني",
+              password: "كلمة المرور",
+              confirmPassword: "تأكيد كلمة المرور",
+
               passwordHint:
-                  "8 أحرف على الأقل، حرف كبير، حرف صغير، ورقم.",
+                  "8 أحرف على الأقل، مع حرف كبير وحرف صغير ورقم.",
+
               create: "إنشاء الحساب",
               creating: "جارٍ إنشاء الحساب...",
+
               haveAccount: "لديك حساب بالفعل؟",
-              registerError:
-                  "تعذر إنشاء الحساب. تحقق من البيانات وحاول مرة أخرى.",
+              signIn: "تسجيل الدخول",
+
               passwordMismatch: "كلمتا المرور غير متطابقتين.",
+              registerError:
+                  "تعذر إنشاء الحساب. تحقق من بياناتك وحاول مرة أخرى.",
+
               security:
-                  "يتم إنشاء الحساب وتفعيله مباشرة بعد نجاح التسجيل.",
+                  "يمكنك البدء باستخدام حسابك مباشرة بعد إتمام التسجيل.",
+
+              lightMode: "الوضع الفاتح",
+              darkMode: "الوضع الداكن",
+              activateLight: "تفعيل الوضع الفاتح",
+              activateDark: "تفعيل الوضع الداكن",
+
+              showPassword: "إظهار كلمة المرور",
+              hidePassword: "إخفاء كلمة المرور",
           }
         : {
-              kicker: "ACCOUNT REGISTRATION",
-              title: "Create your account",
+              brandName: "My Finances",
+              brandSubtitle: "Personal Finance",
+
+              formKicker: "Create account",
+              title: "Start here",
               description:
-                  "Create an account and start managing your income and expenses.",
-              welcomeKicker: "PERSONAL FINANCE",
-              welcomeTitle: "Start organizing your finances",
+                  "Create your account and start organizing your money and financial activity with ease.",
+
+              welcomeKicker: "Personal Finance",
+              welcomeTitle: "Organize your money with clarity",
               welcomeDescription:
-                  "Record income and expenses, organize operations by category, and track your balance in one place.",
+                  "Record income and expenses, organize operations by category, and keep track of your balance in one place.",
+
               featureOne: "Record income and expenses",
-              featureTwo: "Main and subcategory organization",
-              featureThree: "Track your balance and operations",
+              featureTwo: "Organize operations by category",
+              featureThree: "Keep track of your balance and activity",
+
+              name: "Name",
+              email: "Email",
+              password: "Password",
+              confirmPassword: "Confirm password",
+
               passwordHint:
-                  "At least 8 characters, one uppercase, one lowercase, and one number.",
+                  "At least 8 characters, including one uppercase letter, one lowercase letter, and one number.",
+
               create: "Create account",
               creating: "Creating account...",
+
               haveAccount: "Already have an account?",
-              registerError:
-                  "Unable to create the account. Please check your information and try again.",
+              signIn: "Sign in",
+
               passwordMismatch: "Passwords do not match.",
+              registerError:
+                  "Unable to create the account. Please check your details and try again.",
+
               security:
-                  "Your account is activated immediately after successful registration.",
+                  "You can start using your account right after registration.",
+
+              lightMode: "Light mode",
+              darkMode: "Dark mode",
+              activateLight: "Switch to light mode",
+              activateDark: "Switch to dark mode",
+
+              showPassword: "Show password",
+              hidePassword: "Hide password",
           };
 
     const updateField = (field, value) => {
@@ -145,7 +193,8 @@ function Register() {
         } catch (requestError) {
             console.error("Registration error:", requestError);
 
-            const validationErrors = requestError.response?.data?.errors;
+            const validationErrors =
+                requestError.response?.data?.errors;
 
             if (validationErrors) {
                 const firstError = Object.values(validationErrors)
@@ -188,7 +237,7 @@ function Register() {
     };
 
     return (
-        <div className="auth-page">
+        <div className="auth-page" dir={isArabic ? "rtl" : "ltr"}>
             <div
                 className="auth-language-switcher"
                 style={{
@@ -206,15 +255,20 @@ function Register() {
                     style={iconButtonStyle}
                     title={
                         isDark
-                            ? isArabic
-                                ? "الوضع الفاتح"
-                                : "Light mode"
-                            : isArabic
-                              ? "الوضع الداكن"
-                              : "Dark mode"
+                            ? text.lightMode
+                            : text.darkMode
+                    }
+                    aria-label={
+                        isDark
+                            ? text.activateLight
+                            : text.activateDark
                     }
                 >
-                    {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+                    {isDark ? (
+                        <FaSun size={16} />
+                    ) : (
+                        <FaMoon size={16} />
+                    )}
                 </button>
             </div>
 
@@ -225,11 +279,11 @@ function Register() {
 
                         <div>
                             <div className="auth-system-name">
-                                {t("app.name")}
+                                {text.brandName}
                             </div>
 
                             <div className="auth-system-subtitle">
-                                {t("app.subtitle")}
+                                {text.brandSubtitle}
                             </div>
                         </div>
                     </div>
@@ -265,7 +319,7 @@ function Register() {
                 <section className="auth-form-panel">
                     <div className="auth-form-header">
                         <span className="auth-form-kicker">
-                            {text.kicker}
+                            {text.formKicker}
                         </span>
 
                         <h2>{text.title}</h2>
@@ -286,7 +340,7 @@ function Register() {
                     <form onSubmit={handleSubmit} noValidate>
                         <div className="auth-field">
                             <label htmlFor="register-name">
-                                {t("auth.fullName")}
+                                {text.name}
                             </label>
 
                             <input
@@ -307,7 +361,7 @@ function Register() {
 
                         <div className="auth-field">
                             <label htmlFor="register-email">
-                                {t("auth.email")}
+                                {text.email}
                             </label>
 
                             <input
@@ -328,7 +382,7 @@ function Register() {
 
                         <div className="auth-field">
                             <label htmlFor="register-password">
-                                {t("auth.password")}
+                                {text.password}
                             </label>
 
                             <div
@@ -372,12 +426,8 @@ function Register() {
                                     disabled={submitting}
                                     aria-label={
                                         showPassword
-                                            ? isArabic
-                                                ? "إخفاء كلمة المرور"
-                                                : "Hide password"
-                                            : isArabic
-                                              ? "إظهار كلمة المرور"
-                                              : "Show password"
+                                            ? text.hidePassword
+                                            : text.showPassword
                                     }
                                     style={{
                                         background: "none",
@@ -411,7 +461,7 @@ function Register() {
 
                         <div className="auth-field">
                             <label htmlFor="register-confirm-password">
-                                {t("auth.confirmPassword")}
+                                {text.confirmPassword}
                             </label>
 
                             <div
@@ -431,7 +481,9 @@ function Register() {
                                             ? "text"
                                             : "password"
                                     }
-                                    value={form.password_confirmation}
+                                    value={
+                                        form.password_confirmation
+                                    }
                                     onChange={(event) =>
                                         updateField(
                                             "password_confirmation",
@@ -455,12 +507,8 @@ function Register() {
                                     disabled={submitting}
                                     aria-label={
                                         showConfirm
-                                            ? isArabic
-                                                ? "إخفاء كلمة المرور"
-                                                : "Hide password"
-                                            : isArabic
-                                              ? "إظهار كلمة المرور"
-                                              : "Show password"
+                                            ? text.hidePassword
+                                            : text.showPassword
                                     }
                                     style={{
                                         background: "none",
@@ -487,17 +535,22 @@ function Register() {
                             className="auth-submit"
                             disabled={submitting}
                         >
-                            {submitting ? text.creating : text.create}
+                            {submitting
+                                ? text.creating
+                                : text.create}
                         </button>
                     </form>
 
                     <div className="auth-footer">
                         <span>{text.haveAccount}</span>{" "}
-                        <Link to="/login">{t("auth.signIn")}</Link>
+                        <Link to="/login">
+                            {text.signIn}
+                        </Link>
                     </div>
 
                     <div className="auth-security-note">
                         <span className="auth-security-icon">✓</span>
+
                         <span>{text.security}</span>
                     </div>
                 </section>

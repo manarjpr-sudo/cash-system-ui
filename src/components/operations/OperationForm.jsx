@@ -11,354 +11,182 @@ function OperationForm({
     onSave,
     onCancel,
     operation = null,
+    initialType = "expense",
 }) {
     const { language } = useLanguage();
+    const isArabic = language === "ar";
 
     const [formData, setFormData] = useState({
-        type: "income",
+        type: initialType,
         amount: "",
         category_id: "",
         operation_date: getToday(),
         description: "",
     });
 
-    const [mainCategories, setMainCategories] = useState([]);
-    const [subCategories, setSubCategories] = useState([]);
-    const [selectedSubCategoryId, setSelectedSubCategoryId] =
-        useState("");
-
+    const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] =
-        useState(false);
-    const [loadingSubCategories, setLoadingSubCategories] =
         useState(false);
     const [saving, setSaving] = useState(false);
 
-    const t = {
-        ar: {
-            titleCreate: "أضف عملية مالية",
-            titleEdit: "عدّل العملية المالية",
+    const text = isArabic
+        ? {
+              titleCreate: "إضافة عملية",
+              titleEdit: "تعديل العملية",
 
-            type: "ماذا سجّلت؟",
+              income: "دخل",
+              expense: "مصروفات",
 
-            income: "دخل",
-            expense: "مصروف",
+              amount: "المبلغ",
 
-            amount: "كم المبلغ؟",
+              category: "التصنيف",
+              selectCategory: "اختر التصنيف",
 
-            mainCategory: "التصنيف الرئيسي",
+              date: "التاريخ",
 
-            selectMainCategory:
-                "اختر التصنيف المناسب",
+              description: "الملاحظات",
+              descriptionPlaceholder:
+                  "أضف ملاحظة اختيارية عن العملية...",
 
-            subCategory: "التصنيف الفرعي",
+              save: "حفظ العملية",
+              update: "حفظ التعديلات",
+              cancel: "إلغاء",
+              saving: "جارٍ الحفظ...",
 
-            noSubCategory:
-                "لا يوجد تصنيف فرعي لهذا الاختيار",
+              loading:
+                  "جارٍ تحميل التصنيفات...",
 
-            selectSubCategory:
-                "اختر التصنيف الفرعي",
+              amountRequired:
+                  "يرجى إدخال مبلغ صحيح أكبر من صفر.",
 
-            date: "متى حدثت العملية؟",
+              categoryRequired:
+                  "يرجى اختيار التصنيف.",
 
-            description: "ملاحظات",
-            
-            descriptionPlaceholder:
-                "اكتب ملاحظة تساعدك على تذكّر هذه العملية (اختياري)",
+              dateRequired:
+                  "يرجى اختيار التاريخ.",
 
-            save: "حفظ العملية",
-            update: "حفظ التعديلات",
+              error:
+                  "حدث خطأ أثناء تحميل التصنيفات.",
+          }
+        : {
+              titleCreate: "Add Operation",
+              titleEdit: "Edit Operation",
 
-            cancel: "إلغاء",
+              income: "Income",
+              expense: "Expenses",
 
-            saving: "جارٍ حفظ العملية...",
+              amount: "Amount",
 
-            amountRequired:
-                "أدخل مبلغًا صحيحًا أكبر من صفر.",
+              category: "Category",
+              selectCategory: "Select category",
 
-            categoryRequired:
-                "اختر تصنيفًا للعملية حتى يسهل عليك تنظيم أموالك.",
+              date: "Date",
 
-            dateRequired:
-                "اختر تاريخ حدوث العملية.",
+              description: "Notes",
+              descriptionPlaceholder:
+                  "Add an optional note about the operation...",
 
-            error:
-                "تعذر تحميل التصنيفات. حاول مرة أخرى.",
+              save: "Save Operation",
+              update: "Save Changes",
+              cancel: "Cancel",
+              saving: "Saving...",
 
-            loading:
-                "جارٍ تجهيز التصنيفات...",
+              loading:
+                  "Loading categories...",
 
-            selectCategoryFirst:
-                "اختر التصنيف الرئيسي أولًا.",
-        },
+              amountRequired:
+                  "Please enter an amount greater than zero.",
 
-        en: {
-            titleCreate: "Add a financial operation",
-            titleEdit: "Edit financial operation",
+              categoryRequired:
+                  "Please select a category.",
 
-            type: "What did you record?",
+              dateRequired:
+                  "Please select the date.",
 
-            income: "Income",
-            expense: "Expense",
-
-            amount: "How much?",
-
-            mainCategory: "Main category",
-
-            selectMainCategory:
-                "Choose the category that fits",
-
-            subCategory: "Subcategory",
-
-            noSubCategory:
-                "There are no subcategories for this choice",
-
-            selectSubCategory:
-                "Choose a subcategory",
-
-            date: "When did it happen?",
-
-            description: "Notes",
-
-            descriptionPlaceholder:
-                "Add a note to help you remember this operation (optional)",
-
-            save: "Save operation",
-            update: "Save changes",
-
-            cancel: "Cancel",
-
-            saving: "Saving your operation...",
-
-            amountRequired:
-                "Please enter a valid amount greater than zero.",
-
-            categoryRequired:
-                "Choose a category to help keep your finances organized.",
-
-            dateRequired:
-                "Choose the date when this operation happened.",
-
-            error:
-                "We couldn't load the categories. Please try again.",
-
-            loading:
-                "Getting your categories ready...",
-
-            selectCategoryFirst:
-                "Choose a main category first.",
-        },
-    };
-
-    const lang =
-        language === "ar" ? t.ar : t.en;
+              error:
+                  "An error occurred while loading categories.",
+          };
 
     const getCategoryName = (category) => {
-        if (!category) return "";
+        if (!category) {
+            return "";
+        }
 
-        return language === "ar"
-            ? category.name_ar
-            : category.name_en;
+        return isArabic
+            ? category.name_ar || category.name_en
+            : category.name_en || category.name_ar;
     };
 
-    const resetForm = () => {
-        setFormData({
-            type: "income",
-            amount: "",
-            category_id: "",
-            operation_date: getToday(),
-            description: "",
-        });
-
-        setSubCategories([]);
-        setSelectedSubCategoryId("");
-    };
-
-    const loadMainCategories = async (type) => {
+    const loadCategories = async (type) => {
         setLoadingCategories(true);
 
         try {
             const data =
-                await categoryService.getMainCategories(
-                    type
-                );
+                await categoryService.getByType(type);
 
-            setMainCategories(
+            setCategories(
                 Array.isArray(data) ? data : []
             );
         } catch (error) {
             console.error(
-                "Error loading main categories:",
+                "Error loading categories:",
                 error
             );
 
-            setMainCategories([]);
-            toast.error(lang.error);
+            setCategories([]);
+            toast.error(text.error);
         } finally {
             setLoadingCategories(false);
         }
     };
 
-    const loadSubCategories = async (parentId) => {
-        if (!parentId) {
-            setSubCategories([]);
-            return [];
-        }
-
-        setLoadingSubCategories(true);
-
-        try {
-            const data =
-                await categoryService.getSubcategories(
-                    parentId
-                );
-
-            const result =
-                Array.isArray(data) ? data : [];
-
-            setSubCategories(result);
-
-            return result;
-        } catch (error) {
-            console.error(
-                "Error loading subcategories:",
-                error
-            );
-
-            setSubCategories([]);
-            toast.error(lang.error);
-
-            return [];
-        } finally {
-            setLoadingSubCategories(false);
-        }
-    };
-
-    // Load main categories whenever the operation type changes.
-    useEffect(() => {
-        loadMainCategories(formData.type);
-    }, [formData.type]);
-
-    // Initialize create/edit mode.
     useEffect(() => {
         const initialize = async () => {
-            if (!operation) {
-                resetForm();
-                return;
-            }
+            const type =
+                operation?.type === "income"
+                    ? "income"
+                    : operation?.type === "expense"
+                      ? "expense"
+                      : initialType;
 
-            const operationType =
-                operation.type === "expense"
-                    ? "expense"
-                    : "income";
-
-            const operationDate = operation.operation_date
-                ? String(
-                      operation.operation_date
-                  ).slice(0, 10)
-                : getToday();
-
-            const category = operation.category;
+            await loadCategories(type);
 
             setFormData({
-                type: operationType,
-                amount: operation.amount ?? "",
-                category_id: "",
-                operation_date: operationDate,
+                type,
+                amount:
+                    operation?.amount ?? "",
+                category_id:
+                    operation?.category?.id
+                        ? String(
+                              operation.category.id
+                          )
+                        : operation?.category_id
+                          ? String(
+                                operation.category_id
+                            )
+                          : "",
+                operation_date:
+                    operation?.operation_date
+                        ? String(
+                              operation.operation_date
+                          ).slice(0, 10)
+                        : getToday(),
                 description:
-                    operation.description ?? "",
+                    operation?.description ?? "",
             });
-
-            setSubCategories([]);
-            setSelectedSubCategoryId("");
-
-            if (!category) {
-                return;
-            }
-
-            if (category.parent_id) {
-                const parentId =
-                    String(category.parent_id);
-
-                setFormData((current) => ({
-                    ...current,
-                    type: operationType,
-                    category_id: parentId,
-                }));
-
-                const children =
-                    await loadSubCategories(
-                        category.parent_id
-                    );
-
-                const selectedChildExists =
-                    children.some(
-                        (child) =>
-                            String(child.id) ===
-                            String(category.id)
-                    );
-
-                if (selectedChildExists) {
-                    setSelectedSubCategoryId(
-                        String(category.id)
-                    );
-                }
-            } else {
-                const mainId = String(category.id);
-
-                setFormData((current) => ({
-                    ...current,
-                    type: operationType,
-                    category_id: mainId,
-                }));
-
-                await loadSubCategories(
-                    category.id
-                );
-            }
         };
 
         initialize();
-    }, [operation]);
+    }, [operation, initialType]);
 
-    const handleTypeChange = (event) => {
-        const type = event.target.value;
-
+    const handleTypeChange = async (type) => {
         setFormData((current) => ({
             ...current,
             type,
             category_id: "",
         }));
 
-        setSubCategories([]);
-        setSelectedSubCategoryId("");
-    };
-
-    const handleMainCategoryChange = async (
-        event
-    ) => {
-        const parentId = event.target.value;
-
-        setFormData((current) => ({
-            ...current,
-            category_id: parentId,
-        }));
-
-        setSelectedSubCategoryId("");
-
-        if (!parentId) {
-            setSubCategories([]);
-            return;
-        }
-
-        await loadSubCategories(parentId);
-    };
-
-    const handleSubCategoryChange = (
-        event
-    ) => {
-        setSelectedSubCategoryId(
-            event.target.value
-        );
+        await loadCategories(type);
     };
 
     const handleChange = (event) => {
@@ -379,32 +207,28 @@ function OperationForm({
             !Number.isFinite(amount) ||
             amount <= 0
         ) {
-            toast.error(lang.amountRequired);
+            toast.error(text.amountRequired);
             return;
         }
 
         if (!formData.category_id) {
-            toast.error(lang.categoryRequired);
+            toast.error(text.categoryRequired);
             return;
         }
 
         if (!formData.operation_date) {
-            toast.error(lang.dateRequired);
+            toast.error(text.dateRequired);
             return;
         }
 
-        const finalCategoryId =
-            selectedSubCategoryId ||
-            formData.category_id;
-
-        setSaving(true);
-
         try {
+            setSaving(true);
+
             await onSave({
                 type: formData.type,
                 amount,
                 category_id:
-                    Number(finalCategoryId),
+                    Number(formData.category_id),
                 operation_date:
                     formData.operation_date,
                 description:
@@ -412,8 +236,6 @@ function OperationForm({
                     null,
             });
         } catch (error) {
-            // Parent component handles the API error
-            // and displays the appropriate toast.
             console.error(
                 "Error saving operation:",
                 error
@@ -423,108 +245,103 @@ function OperationForm({
         }
     };
 
-    const selectedMainCategory =
-        mainCategories.find(
-            (category) =>
-                String(category.id) ===
-                String(formData.category_id)
-        );
-
     return (
-        <div className="card p-3 p-md-4 mb-4">
-            <div className="mb-4">
-                <h5 className="mb-1">
+        <div className="operation-form">
+            <div className="operation-form-heading">
+                <h3>
                     {operation
-                        ? lang.titleEdit
-                        : lang.titleCreate}
-                </h5>
+                        ? text.titleEdit
+                        : text.titleCreate}
+                </h3>
             </div>
 
-            {loadingCategories && (
-                <div className="text-muted mb-3">
-                    {lang.loading}
-                </div>
-            )}
-
             <form onSubmit={handleSubmit}>
-                <div className="row g-3">
-                    {/* Type */}
-                    <div className="col-md-6">
-                        <label className="form-label">
-                            {lang.type}
-                        </label>
+                <div className="operation-type-tabs">
+                    <button
+                        type="button"
+                        className={
+                            formData.type ===
+                            "expense"
+                                ? "active expense"
+                                : ""
+                        }
+                        onClick={() =>
+                            handleTypeChange(
+                                "expense"
+                            )
+                        }
+                        disabled={saving}
+                    >
+                        {text.expense}
+                    </button>
 
-                        <select
-                            className="form-select"
-                            value={formData.type}
-                            onChange={
-                                handleTypeChange
-                            }
-                            disabled={
-                                saving ||
-                                loadingCategories
-                            }
-                        >
-                            <option value="income">
-                                {lang.income}
-                            </option>
+                    <button
+                        type="button"
+                        className={
+                            formData.type ===
+                            "income"
+                                ? "active income"
+                                : ""
+                        }
+                        onClick={() =>
+                            handleTypeChange(
+                                "income"
+                            )
+                        }
+                        disabled={saving}
+                    >
+                        {text.income}
+                    </button>
+                </div>
 
-                            <option value="expense">
-                                {lang.expense}
-                            </option>
-                        </select>
-                    </div>
-
-                    {/* Amount */}
-                    <div className="col-md-6">
-                        <label className="form-label">
-                            {lang.amount}
+                <div className="operation-form-grid">
+                    <div className="operation-field">
+                        <label>
+                            {text.amount}
                         </label>
 
                         <input
                             type="number"
-                            step="0.01"
-                            min="0.01"
-                            className="form-control"
                             name="amount"
+                            min="0.01"
+                            step="0.01"
                             value={formData.amount}
                             onChange={handleChange}
                             placeholder="0.00"
-                            required
                             disabled={saving}
+                            required
                         />
                     </div>
 
-                    {/* Main category */}
-                    <div className="col-md-6">
-                        <label className="form-label">
-                            {lang.mainCategory}
+                    <div className="operation-field">
+                        <label>
+                            {text.category}
                         </label>
 
                         <select
-                            className="form-select"
+                            name="category_id"
                             value={
                                 formData.category_id
                             }
-                            onChange={
-                                handleMainCategoryChange
-                            }
-                            required
+                            onChange={handleChange}
                             disabled={
                                 saving ||
                                 loadingCategories
                             }
+                            required
                         >
                             <option value="">
-                                {
-                                    lang.selectMainCategory
-                                }
+                                {loadingCategories
+                                    ? text.loading
+                                    : text.selectCategory}
                             </option>
 
-                            {mainCategories.map(
+                            {categories.map(
                                 (category) => (
                                     <option
-                                        key={category.id}
+                                        key={
+                                            category.id
+                                        }
                                         value={
                                             category.id
                                         }
@@ -538,97 +355,29 @@ function OperationForm({
                         </select>
                     </div>
 
-                    {/* Subcategory */}
-                    <div className="col-md-6">
-                        <label className="form-label">
-                            {lang.subCategory}
-                        </label>
-
-                        <select
-                            className="form-select"
-                            value={
-                                selectedSubCategoryId
-                            }
-                            onChange={
-                                handleSubCategoryChange
-                            }
-                            disabled={
-                                saving ||
-                                !formData.category_id ||
-                                loadingSubCategories ||
-                                subCategories.length ===
-                                    0
-                            }
-                        >
-                            <option value="">
-                                {subCategories.length >
-                                0
-                                    ? lang.selectSubCategory
-                                    : lang.noSubCategory}
-                            </option>
-
-                            {subCategories.map(
-                                (category) => (
-                                    <option
-                                        key={category.id}
-                                        value={
-                                            category.id
-                                        }
-                                    >
-                                        {getCategoryName(
-                                            category
-                                        )}
-                                    </option>
-                                )
-                            )}
-                        </select>
-
-                        {!formData.category_id && (
-                            <small className="text-muted d-block mt-1">
-                                {
-                                    lang.selectCategoryFirst
-                                }
-                            </small>
-                        )}
-
-                        {selectedMainCategory &&
-                            subCategories.length ===
-                                0 && (
-                                <small className="text-muted d-block mt-1">
-                                    {
-                                        lang.noSubCategory
-                                    }
-                                </small>
-                            )}
-                    </div>
-
-                    {/* Date */}
-                    <div className="col-md-6">
-                        <label className="form-label">
-                            {lang.date}
+                    <div className="operation-field">
+                        <label>
+                            {text.date}
                         </label>
 
                         <input
                             type="date"
-                            className="form-control"
                             name="operation_date"
                             value={
                                 formData.operation_date
                             }
                             onChange={handleChange}
-                            required
                             disabled={saving}
+                            required
                         />
                     </div>
 
-                    {/* Description */}
-                    <div className="col-12">
-                        <label className="form-label">
-                            {lang.description}
+                    <div className="operation-field full-width">
+                        <label>
+                            {text.description}
                         </label>
 
                         <textarea
-                            className="form-control"
                             name="description"
                             rows="3"
                             maxLength="5000"
@@ -637,38 +386,37 @@ function OperationForm({
                             }
                             onChange={handleChange}
                             placeholder={
-                                lang.descriptionPlaceholder
+                                text.descriptionPlaceholder
                             }
                             disabled={saving}
                         />
                     </div>
+                </div>
 
-                    {/* Actions */}
-                    <div className="col-12 d-flex gap-2">
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={
-                                saving ||
-                                loadingCategories
-                            }
-                        >
-                            {saving
-                                ? lang.saving
-                                : operation
-                                  ? lang.update
-                                  : lang.save}
-                        </button>
+                <div className="operation-form-actions">
+                    <button
+                        type="button"
+                        className="finance-secondary-button"
+                        onClick={onCancel}
+                        disabled={saving}
+                    >
+                        {text.cancel}
+                    </button>
 
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={onCancel}
-                            disabled={saving}
-                        >
-                            {lang.cancel}
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        className="finance-primary-button"
+                        disabled={
+                            saving ||
+                            loadingCategories
+                        }
+                    >
+                        {saving
+                            ? text.saving
+                            : operation
+                              ? text.update
+                              : text.save}
+                    </button>
                 </div>
             </form>
         </div>

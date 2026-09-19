@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+
 import { useLanguage } from "../context/LanguageContext";
 import dashboardService from "../services/dashboardService";
+import operationService from "../services/operationService";
 
 import FormatAmount from "../components/common/FormatAmount";
 import FormatDate from "../components/common/FormatDate";
@@ -23,102 +25,53 @@ import {
 } from "recharts";
 
 function Dashboard() {
-    const { language } = useLanguage();
+    const { lang, language } = useLanguage();
 
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(null);
 
-    const isArabic = language === "ar";
+    const [chartPeriod, setChartPeriod] =
+        useState("days");
 
-    const lang = isArabic
-        ? {
-          greeting: "أهلًا بك",
-          title: "أموالك اليوم",
-          subtitle:
-              "اعرف رصيدك، وتابع دخلك ومصروفاتك بسهولة.",
+    const [chartData, setChartData] =
+        useState([]);
 
-          balance: "رصيدك الحالي",
-          income: "ما دخل إليك",
-          expense: "ما أنفقته",
+    const [chartLoading, setChartLoading] =
+        useState(false);
 
-          incomeVsExpense: "دخلك مقابل مصروفاتك",
-          chartSubtitle:
-              "شاهد الفرق بين ما دخل إليك وما أنفقته.",
+    const isArabic =
+        language === "ar" ||
+        language === "AR";
 
-          quickTitle: "أضف دخلاً أو مصروفًا",
-          quickText:
-              "سجّل أي حركة مالية جديدة ليبقى رصيدك محدثًا.",
-
-          latest: "آخر ما سجّلته",
-          latestSub:
-              "أحدث العمليات المالية التي أضفتها إلى حسابك.",
-          viewAll: "عرض كل العمليات",
-
-          noOperations:
-              "لم تسجّل أي عملية بعد.",
-          addOperation: "أضف أول عملية",
-
-          loading: "نجهّز ملخص أموالك...",
-          loadError:
-              "لم نتمكن من تحميل بيانات أموالك الآن.",
-          retry: "حاول مرة أخرى",
-
-          today: "اليوم",
-
-          incomeType: "دخل",
-          expenseType: "مصروف",
-      }
-    : {
-          greeting: "Welcome back",
-          title: "Your money at a glance",
-          subtitle:
-              "See your balance and keep track of what comes in and goes out.",
-
-          balance: "Your current balance",
-          income: "Money in",
-          expense: "Money out",
-
-          incomeVsExpense: "Money in vs. money out",
-          chartSubtitle:
-              "See the difference between what you receive and what you spend.",
-
-          quickTitle: "Add income or expense",
-          quickText:
-              "Record a new money movement to keep your balance up to date.",
-
-          latest: "What you added recently",
-          latestSub:
-              "Your latest recorded financial activity.",
-          viewAll: "View all operations",
-
-          noOperations:
-              "You haven't added any operations yet.",
-          addOperation: "Add your first operation",
-
-          loading: "Getting your financial overview ready...",
-          loadError:
-              "We couldn't load your financial data right now.",
-          retry: "Try again",
-
-          today: "Today",
-
-          incomeType: "Income",
-          expenseType: "Expense",
-      };
+    /*
+     * ---------------------------------------------------------
+     * Dashboard
+     * ---------------------------------------------------------
+     */
 
     const loadDashboard = async () => {
         try {
             setLoading(true);
-            setError("");
+            setError(null);
 
-            const result =
+            const response =
                 await dashboardService.getDashboard();
 
-            setData(result);
+            setData(
+                response?.data ??
+                    response
+            );
         } catch (err) {
-            console.error("Dashboard error:", err);
-            setError(lang.loadError);
+            console.error(
+                "Error loading dashboard:",
+                err
+            );
+
+            setError(
+                err?.response?.data?.message ||
+                    "حدث خطأ أثناء تحميل لوحة التحكم."
+            );
         } finally {
             setLoading(false);
         }
@@ -128,41 +81,202 @@ function Dashboard() {
         loadDashboard();
     }, []);
 
-    const stats = data?.stats ?? {
-        totalIncome: 0,
-        totalExpense: 0,
-        balance: 0,
-        operationsCount: 0,
-    };
+    /*
+     * ---------------------------------------------------------
+     * Statistics
+     * ---------------------------------------------------------
+     */
 
-    const latestOperations =
-        data?.latestOperations ?? [];
+    const stats = useMemo(
+        () => ({
+            totalIncome: Number(
+                data?.stats?.totalIncome || 0
+            ),
 
-    const user = data?.user;
+            totalExpense: Number(
+                data?.stats?.totalExpense || 0
+            ),
 
-    const chartData = useMemo(
-        () => [
-            {
-                name: lang.income,
-                value: Number(stats.totalIncome || 0),
-            },
-            {
-                name: lang.expense,
-                value: Number(stats.totalExpense || 0),
-            },
-        ],
-        [
-            stats.totalIncome,
-            stats.totalExpense,
-            lang.income,
-            lang.expense,
-        ]
+            balance: Number(
+                data?.stats?.balance || 0
+            ),
+
+            operationsCount: Number(
+                data?.stats?.operationsCount || 0
+            ),
+        }),
+        [data]
     );
 
-    const getCategoryName = (operation) => {
-        const category = operation?.category;
+    const latestOperations =
+        data?.latestOperations || [];
 
-        if (!category) return "-";
+    const user =
+        data?.user || null;
+
+    /*
+     * ---------------------------------------------------------
+     * Text
+     * ---------------------------------------------------------
+     */
+
+    const text = {
+        greeting:
+            lang?.greeting ||
+            (isArabic
+                ? "مرحبًا"
+                : "Welcome"),
+
+        title:
+            lang?.dashboardTitle ||
+            (isArabic
+                ? "لوحة التحكم"
+                : "Dashboard"),
+
+        subtitle:
+            lang?.dashboardSubtitle ||
+            (isArabic
+                ? "نظرة سريعة على وضعك المالي"
+                : "A quick overview of your finances"),
+
+        balance:
+            lang?.balance ||
+            (isArabic
+                ? "رصيدك الحالي"
+                : "Current Balance"),
+
+        income:
+            lang?.income ||
+            (isArabic
+                ? "الدخل"
+                : "Income"),
+
+        expense:
+            lang?.expense ||
+            (isArabic
+                ? "المصروفات"
+                : "Expenses"),
+
+        incomeVsExpense:
+            lang?.incomeVsExpense ||
+            (isArabic
+                ? "حركة دخلك ومصروفاتك"
+                : "Income & Expense Activity"),
+
+        chartSubtitle:
+            lang?.chartSubtitle ||
+            (isArabic
+                ? "ملخص العمليات حسب الفترة"
+                : "Operations summary by period"),
+
+        lastDays:
+            isArabic
+                ? "آخر 7 أيام"
+                : "Last 7 days",
+
+        lastWeeks:
+            isArabic
+                ? "آخر 6 أسابيع"
+                : "Last 6 weeks",
+
+        latest:
+            lang?.latest ||
+            (isArabic
+                ? "آخر ما سجلته"
+                : "Latest Operations"),
+
+        latestSub:
+            lang?.latestSub ||
+            (isArabic
+                ? "أحدث العمليات المالية"
+                : "Your latest financial operations"),
+
+        viewAll:
+            lang?.viewAll ||
+            (isArabic
+                ? "عرض الكل"
+                : "View All"),
+
+        noOperations:
+            lang?.noOperations ||
+            (isArabic
+                ? "لا توجد عمليات مسجلة"
+                : "No operations recorded"),
+
+        addOperation:
+            lang?.addOperation ||
+            (isArabic
+                ? "إضافة عملية"
+                : "Add Operation"),
+
+        loading:
+            lang?.loading ||
+            (isArabic
+                ? "جاري التحميل..."
+                : "Loading..."),
+
+        loadError:
+            lang?.loadError ||
+            (isArabic
+                ? "تعذر تحميل البيانات"
+                : "Unable to load data"),
+
+        retry:
+            lang?.retry ||
+            (isArabic
+                ? "إعادة المحاولة"
+                : "Retry"),
+
+        incomeType:
+            lang?.incomeType ||
+            (isArabic
+                ? "دخل"
+                : "Income"),
+
+        expenseType:
+            lang?.expenseType ||
+            (isArabic
+                ? "مصروف"
+                : "Expense"),
+
+        operation:
+            isArabic
+                ? "النوع"
+                : "Type",
+
+        category:
+            isArabic
+                ? "التصنيف"
+                : "Category",
+
+        date:
+            isArabic
+                ? "التاريخ"
+                : "Date",
+
+        amount:
+            isArabic
+                ? "المبلغ"
+                : "Amount",
+
+        noDescription:
+            isArabic
+                ? "بدون ملاحظات"
+                : "No notes",
+    };
+
+    /*
+     * ---------------------------------------------------------
+     * Category name
+     * ---------------------------------------------------------
+     */
+
+    const getCategoryName = (
+        category
+    ) => {
+        if (!category) {
+            return "-";
+        }
 
         return isArabic
             ? category.name_ar ||
@@ -173,36 +287,488 @@ function Dashboard() {
                   "-";
     };
 
-    if (loading) {
+    /*
+     * ---------------------------------------------------------
+     * Chart periods
+     * ---------------------------------------------------------
+     */
+
+    const buildPeriods = (
+        period
+    ) => {
+        const periods = [];
+        const today = new Date();
+
+        if (period === "days") {
+            for (
+                let i = 6;
+                i >= 0;
+                i--
+            ) {
+                const date =
+                    new Date(today);
+
+                date.setHours(
+                    0,
+                    0,
+                    0,
+                    0
+                );
+
+                date.setDate(
+                    today.getDate() -
+                        i
+                );
+
+                const key =
+                    date
+                        .toISOString()
+                        .slice(
+                            0,
+                            10
+                        );
+
+                periods.push({
+                    key,
+                    start: key,
+                    end: key,
+
+                    name:
+                        date.toLocaleDateString(
+                            isArabic
+                                ? "ar-EG"
+                                : "en-GB",
+                            {
+                                day: "2-digit",
+                                month: "2-digit",
+                            }
+                        ),
+
+                    income: 0,
+                    expense: 0,
+                });
+            }
+
+            return periods;
+        }
+
+        const current =
+            new Date(today);
+
+        current.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+        const day =
+            current.getDay();
+
+        const mondayOffset =
+            day === 0
+                ? 6
+                : day - 1;
+
+        current.setDate(
+            current.getDate() -
+                mondayOffset
+        );
+
+        for (
+            let i = 5;
+            i >= 0;
+            i--
+        ) {
+            const start =
+                new Date(current);
+
+            start.setDate(
+                current.getDate() -
+                    i * 7
+            );
+
+            const end =
+                new Date(start);
+
+            end.setDate(
+                start.getDate() + 6
+            );
+
+            const startKey =
+                start
+                    .toISOString()
+                    .slice(
+                        0,
+                        10
+                    );
+
+            const endKey =
+                end
+                    .toISOString()
+                    .slice(
+                        0,
+                        10
+                    );
+
+            periods.push({
+                key: startKey,
+                start: startKey,
+                end: endKey,
+
+                name:
+                    start.toLocaleDateString(
+                        isArabic
+                            ? "ar-EG"
+                            : "en-GB",
+                        {
+                            day: "2-digit",
+                            month: "2-digit",
+                        }
+                    ) +
+                    " - " +
+                    end.toLocaleDateString(
+                        isArabic
+                            ? "ar-EG"
+                            : "en-GB",
+                        {
+                            day: "2-digit",
+                            month: "2-digit",
+                        }
+                    ),
+
+                income: 0,
+                expense: 0,
+            });
+        }
+
+        return periods;
+    };
+
+    /*
+     * ---------------------------------------------------------
+     * Chart
+     * ---------------------------------------------------------
+     */
+
+    const loadChartData =
+        async () => {
+            try {
+                setChartLoading(true);
+
+                const periods =
+                    buildPeriods(
+                        chartPeriod
+                    );
+
+                if (!periods.length) {
+                    setChartData([]);
+                    return;
+                }
+
+                const firstPeriod =
+                    periods[0];
+
+                const lastPeriod =
+                    periods[
+                        periods.length - 1
+                    ];
+
+                let allOperations =
+                    [];
+
+                let page = 1;
+                let lastPage = 1;
+
+                do {
+                    const response =
+                        await operationService.getAll(
+                            {
+                                date_from:
+                                    firstPeriod.start,
+
+                                date_to:
+                                    lastPeriod.end,
+
+                                per_page: 100,
+
+                                page,
+                            }
+                        );
+
+                    const payload =
+                        response?.data ??
+                        response;
+
+                    const operations =
+                        Array.isArray(
+                            payload?.data
+                        )
+                            ? payload.data
+                            : [];
+
+                    allOperations =
+                        allOperations.concat(
+                            operations
+                        );
+
+                    const meta =
+                        payload?.meta ||
+                        payload;
+
+                    lastPage =
+                        Number(
+                            meta?.last_page ||
+                                1
+                        );
+
+                    page += 1;
+                } while (
+                    page <= lastPage
+                );
+
+                const result =
+                    periods.map(
+                        (period) => ({
+                            ...period,
+                        })
+                    );
+
+                allOperations.forEach(
+                    (operation) => {
+                        const type =
+                            operation?.type;
+
+                        const amount =
+                            Number(
+                                operation?.amount ||
+                                    0
+                            );
+
+                        const dateValue =
+                            operation?.operation_date ||
+                            operation?.date;
+
+                        if (
+                            !dateValue ||
+                            !amount
+                        ) {
+                            return;
+                        }
+
+                        const date =
+                            new Date(
+                                dateValue
+                            );
+
+                        if (
+                            Number.isNaN(
+                                date.getTime()
+                            )
+                        ) {
+                            return;
+                        }
+
+                        const dateKey =
+                            date
+                                .toISOString()
+                                .slice(
+                                    0,
+                                    10
+                                );
+
+                        if (
+                            chartPeriod ===
+                            "days"
+                        ) {
+                            const target =
+                                result.find(
+                                    (
+                                        item
+                                    ) =>
+                                        item.key ===
+                                        dateKey
+                                );
+
+                            if (!target) {
+                                return;
+                            }
+
+                            if (
+                                type ===
+                                "income"
+                            ) {
+                                target.income +=
+                                    amount;
+                            }
+
+                            if (
+                                type ===
+                                "expense"
+                            ) {
+                                target.expense +=
+                                    amount;
+                            }
+
+                            return;
+                        }
+
+                        const operationDate =
+                            new Date(
+                                date
+                            );
+
+                        operationDate.setHours(
+                            0,
+                            0,
+                            0,
+                            0
+                        );
+
+                        const operationDay =
+                            operationDate.getDay();
+
+                        const operationMondayOffset =
+                            operationDay ===
+                            0
+                                ? 6
+                                : operationDay -
+                                  1;
+
+                        operationDate.setDate(
+                            operationDate.getDate() -
+                                operationMondayOffset
+                        );
+
+                        const weekKey =
+                            operationDate
+                                .toISOString()
+                                .slice(
+                                    0,
+                                    10
+                                );
+
+                        const target =
+                            result.find(
+                                (
+                                    item
+                                ) =>
+                                    item.key ===
+                                    weekKey
+                            );
+
+                        if (!target) {
+                            return;
+                        }
+
+                        if (
+                            type ===
+                            "income"
+                        ) {
+                            target.income +=
+                                amount;
+                        }
+
+                        if (
+                            type ===
+                            "expense"
+                        ) {
+                            target.expense +=
+                                amount;
+                        }
+                    }
+                );
+
+                setChartData(
+                    result
+                );
+            } catch (err) {
+                console.error(
+                    "Error loading chart data:",
+                    err
+                );
+
+                setChartData([]);
+            } finally {
+                setChartLoading(false);
+            }
+        };
+
+    useEffect(() => {
+        loadChartData();
+    }, [
+        chartPeriod,
+        data,
+    ]);
+
+    /*
+     * ---------------------------------------------------------
+     * Loading
+     * ---------------------------------------------------------
+     */
+
+    if (
+        loading &&
+        !data
+    ) {
         return (
             <div
-                className="finance-dashboard-state"
-                dir={isArabic ? "rtl" : "ltr"}
+                className="d-flex align-items-center justify-content-center"
+                style={{
+                    minHeight:
+                        "60vh",
+                }}
             >
-                <div className="finance-dashboard-loading">
-                    {lang.loading}
+                <div
+                    className="text-muted"
+                    style={{
+                        fontSize:
+                            "14px",
+                    }}
+                >
+                    {text.loading}
                 </div>
             </div>
         );
     }
 
-    if (error) {
+    /*
+     * ---------------------------------------------------------
+     * Error
+     * ---------------------------------------------------------
+     */
+
+    if (
+        error &&
+        !data
+    ) {
         return (
             <div
-                className="finance-dashboard-state"
-                dir={isArabic ? "rtl" : "ltr"}
+                className="d-flex flex-column align-items-center justify-content-center text-center"
+                style={{
+                    minHeight:
+                        "60vh",
+                }}
             >
-                <div className="finance-dashboard-error">
-                    <p>{error}</p>
-
-                    <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={loadDashboard}
-                    >
-                        {lang.retry}
-                    </button>
+                <div
+                    className="text-danger mb-3"
+                    style={{
+                        fontSize:
+                            "14px",
+                    }}
+                >
+                    {text.loadError}
                 </div>
+
+                <button
+                    type="button"
+                    className="btn btn-outline-primary"
+                    onClick={
+                        loadDashboard
+                    }
+                >
+                    {text.retry}
+                </button>
             </div>
         );
     }
@@ -210,314 +776,917 @@ function Dashboard() {
     return (
         <div
             className="finance-dashboard"
-            dir={isArabic ? "rtl" : "ltr"}
+            style={{
+                paddingBottom:
+                    "32px",
+            }}
         >
-            {/* Header */}
-            <header className="finance-dashboard-header">
+            {/* =================================================
+                Header
+            ================================================= */}
+
+            <div
+                className="d-flex align-items-center justify-content-between flex-wrap gap-3"
+                style={{
+                    marginBottom:
+                        "24px",
+                }}
+            >
                 <div>
-                    <div className="finance-dashboard-greeting">
-                        {lang.greeting}
+                    <div
+                        className="text-muted"
+                        style={{
+                            fontSize:
+                                "13px",
+                            marginBottom:
+                                "4px",
+                        }}
+                    >
+                        {text.greeting}
                         {user?.name
                             ? `، ${user.name}`
                             : ""}
                     </div>
 
-                    <h1>{lang.title}</h1>
+                    <h1
+                        className="mb-1"
+                        style={{
+                            fontSize:
+                                "26px",
+                            fontWeight:
+                                700,
+                        }}
+                    >
+                        {text.title}
+                    </h1>
 
-                    <p className="finance-dashboard-subtitle">
-                        {lang.subtitle}
-                    </p>
+                    <div
+                        className="text-muted"
+                        style={{
+                            fontSize:
+                                "14px",
+                        }}
+                    >
+                        {text.subtitle}
+                    </div>
                 </div>
 
+                {/* Important:
+                    Adding from Dashboard goes to the SAME
+                    Operations page and SAME operation form.
+                */}
                 <Link
                     to="/operations?action=create"
-                    className="finance-dashboard-add"
+                    className="finance-dashboard-add text-decoration-none"
                 >
-                    <FaPlus size={11} />
-                    {lang.addOperation}
+                    <FaPlus
+                        size={11}
+                    />
+                    {text.addOperation}
                 </Link>
-            </header>
+            </div>
 
-            {/* Balance hero */}
-            <section className="finance-hero">
+            {/* =================================================
+                Current Balance
+            ================================================= */}
+
+            <section
+                className="finance-hero"
+                style={{
+                    marginBottom:
+                        "24px",
+                    padding:
+                        "24px",
+                    boxSizing:
+                        "border-box",
+                }}
+            >
                 <div>
-                    <div className="finance-hero-label">
-                        {lang.balance}
+                    <div
+                        className="text-muted"
+                        style={{
+                            fontSize:
+                                "13px",
+                            marginBottom:
+                                "8px",
+                        }}
+                    >
+                        {text.balance}
                     </div>
 
-                    <div className="finance-hero-balance">
+                    <div
+                        style={{
+                            fontSize:
+                                "32px",
+                            fontWeight:
+                                700,
+                            lineHeight:
+                                1.2,
+                        }}
+                    >
                         <FormatAmount
-                            value={stats.balance}
+                            value={
+                                stats.balance
+                            }
                         />
                     </div>
                 </div>
 
-                <div className="finance-hero-side">
-                    <div className="finance-hero-stat">
-                        <div className="finance-hero-stat-label">
-                            <span className="finance-hero-dot income" />
-                            {lang.income}
+                <div
+                    className="d-flex flex-wrap gap-4"
+                    style={{
+                        marginTop:
+                            "20px",
+                    }}
+                >
+                    <div>
+                        <div
+                            className="text-muted"
+                            style={{
+                                fontSize:
+                                    "12px",
+                                marginBottom:
+                                    "4px",
+                            }}
+                        >
+                            {text.income}
                         </div>
 
-                        <div className="finance-hero-stat-value">
+                        <div
+                            style={{
+                                color:
+                                    "var(--color-success)",
+                                fontWeight:
+                                    600,
+                            }}
+                        >
                             <FormatAmount
-                                value={stats.totalIncome}
+                                value={
+                                    stats.totalIncome
+                                }
                             />
                         </div>
                     </div>
 
-                    <div className="finance-hero-stat">
-                        <div className="finance-hero-stat-label">
-                            <span className="finance-hero-dot expense" />
-                            {lang.expense}
+                    <div>
+                        <div
+                            className="text-muted"
+                            style={{
+                                fontSize:
+                                    "12px",
+                                marginBottom:
+                                    "4px",
+                            }}
+                        >
+                            {text.expense}
                         </div>
 
-                        <div className="finance-hero-stat-value">
+                        <div
+                            style={{
+                                color:
+                                    "var(--color-danger)",
+                                fontWeight:
+                                    600,
+                            }}
+                        >
                             <FormatAmount
-                                value={stats.totalExpense}
+                                value={
+                                    stats.totalExpense
+                                }
                             />
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Small stats */}
-            <div className="finance-summary-grid">
-                <div className="finance-summary-card">
-                    <div className="finance-summary-icon income">
-                        <FaArrowUp />
-                    </div>
+            {/* =================================================
+                Chart
+            ================================================= */}
 
+            <section
+                className="finance-panel"
+                style={{
+                    marginBottom:
+                        "24px",
+                    padding:
+                        "24px",
+                    boxSizing:
+                        "border-box",
+                }}
+            >
+                <div
+                    className="d-flex align-items-center justify-content-between flex-wrap gap-3"
+                    style={{
+                        marginBottom:
+                            "20px",
+                    }}
+                >
                     <div>
-                        <div className="finance-summary-label">
-                            {lang.income}
-                        </div>
-
-                        <div className="finance-summary-value">
-                            <FormatAmount
-                                value={stats.totalIncome}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="finance-summary-card">
-                    <div className="finance-summary-icon expense">
-                        <FaArrowDown />
-                    </div>
-
-                    <div>
-                        <div className="finance-summary-label">
-                            {lang.expense}
-                        </div>
-
-                        <div className="finance-summary-value">
-                            <FormatAmount
-                                value={stats.totalExpense}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Chart + quick action */}
-            <div className="finance-dashboard-grid">
-                <section className="finance-panel">
-                    <div className="finance-panel-header">
-                        <div>
-                            <h2>
-                                {lang.incomeVsExpense}
-                            </h2>
-
-                            <p>
-                                {lang.chartSubtitle}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="finance-panel-body">
-                        <div className="finance-chart-wrap">
-                            <ResponsiveContainer>
-                                <BarChart
-                                    data={chartData}
-                                    margin={{
-                                        top: 12,
-                                        right: 8,
-                                        left: isArabic
-                                            ? 8
-                                            : 0,
-                                        bottom: 8,
-                                    }}
-                                    barCategoryGap="34%"
-                                >
-                                    <CartesianGrid
-                                        vertical={false}
-                                        stroke="var(--border-color)"
-                                        strokeDasharray="3 3"
-                                    />
-
-                                    <XAxis
-                                        dataKey="name"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{
-                                            fontSize: 10,
-                                            fill: "var(--text-muted)",
-                                        }}
-                                    />
-
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        width={58}
-                                        tick={{
-                                            fontSize: 9,
-                                            fill: "var(--text-muted)",
-                                        }}
-                                    />
-
-                                    <Tooltip
-                                        cursor={{
-                                            fill: "rgba(37, 99, 235, 0.04)",
-                                        }}
-                                        formatter={(value) => [
-                                            Number(value || 0).toLocaleString(),
-                                            "",
-                                        ]}
-                                    />
-
-                                    <Bar
-                                        dataKey="value"
-                                        fill="var(--color-primary)"
-                                        radius={[
-                                            7,
-                                            7,
-                                            2,
-                                            2,
-                                        ]}
-                                        maxBarSize={58}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="finance-panel">
-                    <div className="finance-quick-action">
-                        <div className="finance-quick-action-top">
-                            <div className="finance-quick-icon">
-                                <FaPlus />
-                            </div>
-
-                            <h2>{lang.quickTitle}</h2>
-
-                            <p>{lang.quickText}</p>
-                        </div>
-
-                        <Link
-                            to="/operations?action=create"
-                            className="finance-quick-button"
+                        <h2
+                            style={{
+                                fontSize:
+                                    "18px",
+                                fontWeight:
+                                    700,
+                                marginBottom:
+                                    "5px",
+                            }}
                         >
-                            <FaPlus size={10} />
-                            {lang.addOperation}
-                        </Link>
+                            {
+                                text.incomeVsExpense
+                            }
+                        </h2>
+
+                        <div
+                            className="text-muted"
+                            style={{
+                                fontSize:
+                                    "13px",
+                            }}
+                        >
+                            {
+                                text.chartSubtitle
+                            }
+                        </div>
                     </div>
-                </section>
-            </div>
 
-            {/* Latest operations */}
-            <section className="finance-latest">
-                <header className="finance-latest-header">
+                    {/* Period controls — custom compact style */}
+                    <div
+                        style={{
+                            display:
+                                "flex",
+                            alignItems:
+                                "center",
+                            gap: "4px",
+                            padding:
+                                "4px",
+                            border:
+                                "1px solid var(--border-color)",
+                            borderRadius:
+                                "10px",
+                            background:
+                                "var(--bg-surface)",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setChartPeriod(
+                                    "days"
+                                )
+                            }
+                            style={{
+                                border:
+                                    "none",
+                                borderRadius:
+                                    "7px",
+                                padding:
+                                    "7px 12px",
+                                fontSize:
+                                    "12px",
+                                fontWeight:
+                                    600,
+                                cursor:
+                                    "pointer",
+                                background:
+                                    chartPeriod ===
+                                    "days"
+                                        ? "var(--color-primary)"
+                                        : "transparent",
+                                color:
+                                    chartPeriod ===
+                                    "days"
+                                        ? "#fff"
+                                        : "var(--text-secondary)",
+                                transition:
+                                    "all 0.15s ease",
+                            }}
+                        >
+                            {
+                                text.lastDays
+                            }
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setChartPeriod(
+                                    "weeks"
+                                )
+                            }
+                            style={{
+                                border:
+                                    "none",
+                                borderRadius:
+                                    "7px",
+                                padding:
+                                    "7px 12px",
+                                fontSize:
+                                    "12px",
+                                fontWeight:
+                                    600,
+                                cursor:
+                                    "pointer",
+                                background:
+                                    chartPeriod ===
+                                    "weeks"
+                                        ? "var(--color-primary)"
+                                        : "transparent",
+                                color:
+                                    chartPeriod ===
+                                    "weeks"
+                                        ? "#fff"
+                                        : "var(--text-secondary)",
+                                transition:
+                                    "all 0.15s ease",
+                            }}
+                        >
+                            {
+                                text.lastWeeks
+                            }
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    style={{
+                        width:
+                            "100%",
+                        height:
+                            "340px",
+                    }}
+                >
+                    {chartLoading ? (
+                        <div
+                            className="d-flex align-items-center justify-content-center h-100 text-muted"
+                            style={{
+                                fontSize:
+                                    "13px",
+                            }}
+                        >
+                            {
+                                text.loading
+                            }
+                        </div>
+                    ) : (
+                        <ResponsiveContainer
+                            width="100%"
+                            height="100%"
+                        >
+                            <BarChart
+                                data={
+                                    chartData
+                                }
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: 5,
+                                    bottom: 5,
+                                }}
+                                barGap={8}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    stroke="var(--border-color)"
+                                    vertical={
+                                        false
+                                    }
+                                />
+
+                                <XAxis
+                                    dataKey="name"
+                                    tick={{
+                                        fontSize:
+                                            11,
+                                        fill: "var(--text-muted)",
+                                    }}
+                                    axisLine={{
+                                        stroke:
+                                            "var(--border-color)",
+                                    }}
+                                    tickLine={
+                                        false
+                                    }
+                                />
+
+                                <YAxis
+                                    tick={{
+                                        fontSize:
+                                            11,
+                                        fill: "var(--text-muted)",
+                                    }}
+                                    axisLine={
+                                        false
+                                    }
+                                    tickLine={
+                                        false
+                                    }
+                                    tickFormatter={(
+                                        value
+                                    ) =>
+                                        Number(
+                                            value
+                                        ).toLocaleString()
+                                    }
+                                />
+
+                                <Tooltip
+                                    formatter={(
+                                        value
+                                    ) => [
+                                        Number(
+                                            value
+                                        ).toLocaleString(
+                                            undefined,
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            }
+                                        ),
+                                        "",
+                                    ]}
+                                    contentStyle={{
+                                        background:
+                                            "var(--bg-card)",
+                                        border:
+                                            "1px solid var(--border-color)",
+                                        borderRadius:
+                                            "10px",
+                                    }}
+                                />
+
+                                <Bar
+                                    dataKey="income"
+                                    name={
+                                        text.income
+                                    }
+                                    fill="var(--color-success)"
+                                    radius={[
+                                        5,
+                                        5,
+                                        0,
+                                        0,
+                                    ]}
+                                    maxBarSize={
+                                        42
+                                    }
+                                />
+
+                                <Bar
+                                    dataKey="expense"
+                                    name={
+                                        text.expense
+                                    }
+                                    fill="var(--color-danger)"
+                                    radius={[
+                                        5,
+                                        5,
+                                        0,
+                                        0,
+                                    ]}
+                                    maxBarSize={
+                                        42
+                                    }
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+
+                {/* Simple chart legend */}
+                <div
+                    className="d-flex align-items-center justify-content-center gap-4"
+                    style={{
+                        marginTop:
+                            "6px",
+                    }}
+                >
+                    <div
+                        className="d-flex align-items-center gap-2"
+                        style={{
+                            fontSize:
+                                "12px",
+                            color:
+                                "var(--text-secondary)",
+                        }}
+                    >
+                        <span
+                            style={{
+                                width:
+                                    "8px",
+                                height:
+                                    "8px",
+                                borderRadius:
+                                    "50%",
+                                background:
+                                    "var(--color-success)",
+                            }}
+                        />
+                        {
+                            text.income
+                        }
+                    </div>
+
+                    <div
+                        className="d-flex align-items-center gap-2"
+                        style={{
+                            fontSize:
+                                "12px",
+                            color:
+                                "var(--text-secondary)",
+                        }}
+                    >
+                        <span
+                            style={{
+                                width:
+                                    "8px",
+                                height:
+                                    "8px",
+                                borderRadius:
+                                    "50%",
+                                background:
+                                    "var(--color-danger)",
+                            }}
+                        />
+                        {
+                            text.expense
+                        }
+                    </div>
+                </div>
+            </section>
+
+            {/* =================================================
+                Latest Operations
+            ================================================= */}
+
+            <section
+                className="finance-panel"
+                style={{
+                    marginTop:
+                        "24px",
+                    padding:
+                        "24px",
+                    boxSizing:
+                        "border-box",
+                    overflow:
+                        "hidden",
+                }}
+            >
+                <div
+                    className="d-flex align-items-center justify-content-between flex-wrap gap-3"
+                    style={{
+                        marginBottom:
+                            "18px",
+                    }}
+                >
                     <div>
-                        <h2>{lang.latest}</h2>
+                        <h2
+                            style={{
+                                fontSize:
+                                    "18px",
+                                fontWeight:
+                                    700,
+                                marginBottom:
+                                    "5px",
+                            }}
+                        >
+                            {
+                                text.latest
+                            }
+                        </h2>
 
-                        <p>{lang.latestSub}</p>
+                        <div
+                            className="text-muted"
+                            style={{
+                                fontSize:
+                                    "13px",
+                            }}
+                        >
+                            {
+                                text.latestSub
+                            }
+                        </div>
                     </div>
 
                     <Link
                         to="/operations"
-                        className="finance-latest-link"
+                        className="text-decoration-none"
+                        style={{
+                            fontSize:
+                                "13px",
+                        }}
                     >
-                        {lang.viewAll}
+                        {
+                            text.viewAll
+                        }
                     </Link>
-                </header>
+                </div>
 
-                {latestOperations.length === 0 ? (
-                    <div className="finance-latest-empty">
-                        {lang.noOperations}
+                {latestOperations.length ===
+                0 ? (
+                    <div
+                        className="text-center text-muted"
+                        style={{
+                            padding:
+                                "40px 20px",
+                            fontSize:
+                                "14px",
+                        }}
+                    >
+                        {
+                            text.noOperations
+                        }
                     </div>
                 ) : (
-                    <div className="finance-latest-list">
-                        {latestOperations.map(
-                            (operation) => {
-                                const isIncome =
-                                    operation.type ===
-                                    "income";
-
-                                return (
-                                    <div
-                                        key={operation.id}
-                                        className="finance-latest-item"
+                    <div
+                        style={{
+                            width:
+                                "100%",
+                            overflowX:
+                                "auto",
+                        }}
+                    >
+                        <table
+                            className="w-100"
+                            style={{
+                                borderCollapse:
+                                    "collapse",
+                                minWidth:
+                                    "620px",
+                            }}
+                        >
+                            <thead>
+                                <tr
+                                    style={{
+                                        borderBottom:
+                                            "1px solid var(--border-color)",
+                                    }}
+                                >
+                                    <th
+                                        style={{
+                                            padding:
+                                                "12px 10px",
+                                            textAlign:
+                                                isArabic
+                                                    ? "right"
+                                                    : "left",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                600,
+                                            color:
+                                                "var(--text-muted)",
+                                        }}
                                     >
-                                        <div
-                                            className={`finance-latest-icon ${
-                                                isIncome
-                                                    ? "income"
-                                                    : "expense"
-                                            }`}
-                                        >
-                                            {isIncome ? (
-                                                <FaArrowUp />
-                                            ) : (
-                                                <FaArrowDown />
-                                            )}
-                                        </div>
+                                        {
+                                            text.category
+                                        }
+                                    </th>
 
-                                        <div className="finance-latest-content">
-                                            <div className="finance-latest-category">
-                                                {getCategoryName(
-                                                    operation
-                                                )}
-                                            </div>
+                                    <th
+                                        style={{
+                                            padding:
+                                                "12px 10px",
+                                            textAlign:
+                                                isArabic
+                                                    ? "right"
+                                                    : "left",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                600,
+                                            color:
+                                                "var(--text-muted)",
+                                        }}
+                                    >
+                                        {
+                                            text.date
+                                        }
+                                    </th>
 
-                                            <div className="finance-latest-meta">
-                                                <FormatDate
-                                                    value={
-                                                        operation.operation_date
+                                    <th
+                                        style={{
+                                            padding:
+                                                "12px 10px",
+                                            textAlign:
+                                                "center",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                600,
+                                            color:
+                                                "var(--text-muted)",
+                                        }}
+                                    >
+                                        {
+                                            text.operation
+                                        }
+                                    </th>
+
+                                    <th
+                                        style={{
+                                            padding:
+                                                "12px 10px",
+                                            textAlign:
+                                                isArabic
+                                                    ? "left"
+                                                    : "right",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                600,
+                                            color:
+                                                "var(--text-muted)",
+                                        }}
+                                    >
+                                        {
+                                            text.amount
+                                        }
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {latestOperations
+                                    .slice(
+                                        0,
+                                        5
+                                    )
+                                    .map(
+                                        (
+                                            operation
+                                        ) => {
+                                            const isIncome =
+                                                operation?.type ===
+                                                "income";
+
+                                            return (
+                                                <tr
+                                                    key={
+                                                        operation.id
                                                     }
-                                                />
+                                                    style={{
+                                                        borderBottom:
+                                                            "1px solid var(--border-color)",
+                                                    }}
+                                                >
+                                                    <td
+                                                        style={{
+                                                            padding:
+                                                                "14px 10px",
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                fontSize:
+                                                                    "14px",
+                                                                fontWeight:
+                                                                    600,
+                                                            }}
+                                                        >
+                                                            {
+                                                                getCategoryName(
+                                                                    operation?.category
+                                                                )
+                                                            }
+                                                        </div>
 
-                                                <span>•</span>
+                                                        {operation?.description && (
+                                                            <div
+                                                                className="text-muted"
+                                                                style={{
+                                                                    fontSize:
+                                                                        "11px",
+                                                                    marginTop:
+                                                                        "3px",
+                                                                    maxWidth:
+                                                                        "280px",
+                                                                    overflow:
+                                                                        "hidden",
+                                                                    textOverflow:
+                                                                        "ellipsis",
+                                                                    whiteSpace:
+                                                                        "nowrap",
+                                                                }}
+                                                            >
+                                                                {
+                                                                    operation.description
+                                                                }
+                                                            </div>
+                                                        )}
+                                                    </td>
 
-                                                <span>
-                                                    {isIncome
-                                                        ? lang.incomeType
-                                                        : lang.expenseType}
-                                                </span>
-                                            </div>
-                                        </div>
+                                                    <td
+                                                        style={{
+                                                            padding:
+                                                                "14px 10px",
+                                                            fontSize:
+                                                                "12px",
+                                                            color:
+                                                                "var(--text-secondary)",
+                                                        }}
+                                                    >
+                                                        {operation?.operation_date ? (
+                                                            <FormatDate
+                                                                value={
+                                                                    operation.operation_date
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            "-"
+                                                        )}
+                                                    </td>
 
-                                        <div
-                                            className={`finance-latest-amount ${
-                                                isIncome
-                                                    ? "income"
-                                                    : "expense"
-                                            }`}
-                                        >
-                                            {isIncome
-                                                ? "+"
-                                                : "-"}{" "}
-                                            <FormatAmount
-                                                value={
-                                                    operation.amount
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        )}
+                                                    <td
+                                                        style={{
+                                                            padding:
+                                                                "14px 10px",
+                                                            textAlign:
+                                                                "center",
+                                                        }}
+                                                    >
+                                                        <span
+                                                            style={{
+                                                                display:
+                                                                    "inline-flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                gap:
+                                                                    "6px",
+                                                                padding:
+                                                                    "5px 9px",
+                                                                borderRadius:
+                                                                    "999px",
+                                                                background:
+                                                                    isIncome
+                                                                        ? "rgba(34, 197, 94, 0.10)"
+                                                                        : "rgba(239, 68, 68, 0.10)",
+                                                                color:
+                                                                    isIncome
+                                                                        ? "var(--color-success)"
+                                                                        : "var(--color-danger)",
+                                                                fontSize:
+                                                                    "11px",
+                                                                fontWeight:
+                                                                    600,
+                                                            }}
+                                                        >
+                                                            {isIncome ? (
+                                                                <FaArrowUp
+                                                                    size={
+                                                                        9
+                                                                    }
+                                                                />
+                                                            ) : (
+                                                                <FaArrowDown
+                                                                    size={
+                                                                        9
+                                                                    }
+                                                                />
+                                                            )}
+
+                                                            {isIncome
+                                                                ? text.incomeType
+                                                                : text.expenseType}
+                                                        </span>
+                                                    </td>
+
+                                                    <td
+                                                        style={{
+                                                            padding:
+                                                                "14px 10px",
+                                                            textAlign:
+                                                                isArabic
+                                                                    ? "left"
+                                                                    : "right",
+                                                            fontSize:
+                                                                "14px",
+                                                            fontWeight:
+                                                                700,
+                                                            color:
+                                                                isIncome
+                                                                    ? "var(--color-success)"
+                                                                    : "var(--color-danger)",
+                                                            whiteSpace:
+                                                                "nowrap",
+                                                        }}
+                                                    >
+                                                        {isIncome
+                                                            ? "+"
+                                                            : "-"}{" "}
+                                                        <FormatAmount
+                                                            value={Number(
+                                                                operation?.amount ||
+                                                                    0
+                                                            )}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                    )}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </section>

@@ -6,34 +6,58 @@ function FormatAmount({ value, showCurrency = true }) {
     const { settings } = useSettings();
     const { language } = useLanguage();
 
-    // تحويل القيمة إلى رقم
     let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
+
+    if (Number.isNaN(num)) {
+        num = 0;
+    }
+
     const amount = num;
 
-    // البحث عن العملة المختارة في القائمة
-    const found = CURRENCIES.find(c => c.code === settings.currency);
-    
-    // تحديد الرمز حسب اللغة الحالية
-    const symbol = found
-        ? (language === 'ar' ? found.symbol_ar : found.symbol_en)
-        : (language === 'ar' ? 'ر.س' : 'SAR');
+    const selectedCurrency =
+        settings?.currency || "USD";
 
-    // التحقق من إظهار الرمز
-    const shouldShowCurrency = showCurrency && settings.show_currency_symbol !== false;
+    const isCustomCurrency =
+        selectedCurrency === "CUSTOM";
 
-    // تنسيق الرقم
-    const formattedNumber = amount.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+    const found = CURRENCIES.find(
+        (currency) =>
+            currency.code === selectedCurrency
+    );
+
+    let symbol = settings?.currency_symbol || "$";
+
+    if (!isCustomCurrency && found) {
+        symbol =
+            language === "ar"
+                ? found.symbol_ar ||
+                  found.symbol_en ||
+                  found.code
+                : found.symbol_en ||
+                  found.symbol_ar ||
+                  found.code;
+    }
+
+    const shouldShowCurrency =
+        showCurrency &&
+        settings?.show_currency_symbol !== false;
+
+    const formattedNumber = amount.toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }
+    );
 
     return (
-        <span className="fw-bold" key={`${settings.currency}-${language}`}>
+        <span
+            className="fw-bold"
+            key={`${selectedCurrency}-${symbol}-${language}`}
+        >
             {shouldShowCurrency
-                ? `${formattedNumber} ${symbol}`  // ✅ رمز العملة بعد الرقم
-                : formattedNumber
-            }
+                ? `${formattedNumber} ${symbol}`
+                : formattedNumber}
         </span>
     );
 }

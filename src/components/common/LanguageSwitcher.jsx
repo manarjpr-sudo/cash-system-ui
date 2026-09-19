@@ -13,11 +13,12 @@ function LanguageSwitcher() {
         <button
             type="button"
             onClick={toggleLanguage}
-            className="btn rounded-circle d-flex align-items-center justify-content-center"
+            className="btn d-flex align-items-center justify-content-center"
             style={{
-                width: '36px',
-                height: '36px',
+                width: '34px',
+                height: '34px',
                 padding: '0',
+                borderRadius: '8px',
                 border: '1px solid #e2e8f0',
                 background: isArabic ? '#2563eb' : 'transparent',
                 color: isArabic ? '#ffffff' : '#475569',
@@ -45,7 +46,7 @@ function LanguageSwitcher() {
             }}
             title={isArabic ? 'Switch to English' : 'تبديل إلى العربية'}
         >
-            {isArabic ? 'AR' : 'EN'}
+            {isArabic ? 'EN' : 'AR'}
         </button>
     );
 }

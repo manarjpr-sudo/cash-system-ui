@@ -1,23 +1,22 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 
-const SettingsContext = createContext();
+const SettingsContext = createContext(null);
 
 const defaultSettings = {
-    company_name_ar: "نظام إدارة النقد",
-    company_name_en: "Cash Management System",
-    slogan_ar: "إدارة مالية ذكية",
-    slogan_en: "Smart Financial Management",
+    company_name_ar: "إدارة أموالي",
+    company_name_en: "My Finances",
+    slogan_ar: "إدارة أموالك بطريقة أبسط",
+    slogan_en: "Manage your money with clarity",
     currency: "USD",
     currency_symbol: "$",
     date_format: "dd/mm/yyyy",
     timezone: "Asia/Riyadh",
-    auto_approve: false,
-    items_per_page: 10,
+    items_per_page: 20,
     show_currency_symbol: true,
 };
 
-export const SettingsProvider = ({ children }) => {
+export function SettingsProvider({ children }) {
     const [settings, setSettings] = useState(defaultSettings);
     const [loading, setLoading] = useState(true);
 
@@ -32,8 +31,8 @@ export const SettingsProvider = ({ children }) => {
         try {
             const response = await api.get("/settings");
 
-            setSettings((prev) => ({
-                ...prev,
+            setSettings((previous) => ({
+                ...previous,
                 ...response.data,
             }));
         } catch (error) {
@@ -51,8 +50,8 @@ export const SettingsProvider = ({ children }) => {
         try {
             await api.put("/settings", newSettings);
 
-            setSettings((prev) => ({
-                ...prev,
+            setSettings((previous) => ({
+                ...previous,
                 ...newSettings,
             }));
 
@@ -75,6 +74,16 @@ export const SettingsProvider = ({ children }) => {
             {children}
         </SettingsContext.Provider>
     );
-};
+}
 
-export const useSettings = () => useContext(SettingsContext);
+export function useSettings() {
+    const context = useContext(SettingsContext);
+
+    if (!context) {
+        throw new Error(
+            "useSettings must be used inside SettingsProvider."
+        );
+    }
+
+    return context;
+}

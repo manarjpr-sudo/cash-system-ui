@@ -14,8 +14,8 @@ const SUPPORTED_LANGUAGES = ["ar", "en"];
 const translations = {
     ar: {
         app: {
-            name: "نظام إدارة النقد",
-            subtitle: "منصة الإدارة المالية والعمليات النقدية",
+            name: "إدارة أموالي",
+            subtitle: "مدير مالي شخصي",
         },
 
         common: {
@@ -27,17 +27,15 @@ const translations = {
             search: "بحث",
             filter: "تصفية",
             all: "الكل",
-            active: "نشط",
-            inactive: "غير نشط",
-            pending: "قيد الانتظار",
-            approved: "مقبول",
-            rejected: "مرفوض",
             actions: "الإجراءات",
             status: "الحالة",
             date: "التاريخ",
             name: "الاسم",
             email: "البريد الإلكتروني",
-            role: "الدور",
+            amount: "المبلغ",
+            income: "الدخل",
+            expense: "المصروفات",
+            category: "التصنيف",
         },
 
         auth: {
@@ -52,27 +50,16 @@ const translations = {
             password: "كلمة المرور",
             confirmPassword: "تأكيد كلمة المرور",
             fullName: "الاسم الكامل",
-            accountType: "نوع الحساب",
             email: "البريد الإلكتروني",
-            pendingTitle: "تم إرسال طلب التسجيل",
-            pendingMessage:
-                "تم إنشاء طلبك وهو بانتظار مراجعة مدير النظام.",
-            pendingStatus: "بانتظار الموافقة",
-            returnToLogin: "العودة إلى تسجيل الدخول",
         },
 
         navigation: {
             dashboard: "لوحة التحكم",
             operations: "العمليات",
-            customers: "العملاء",
-            transactions: "المعاملات",
-            approvals: "الموافقات",
-            users: "المستخدمون",
-            roles: "الأدوار والصلاحيات",
+            categories: "التصنيفات",
             reports: "التقارير",
-            cashFlow: "التدفق النقدي",
-            auditLogs: "سجل التدقيق",
             settings: "الإعدادات",
+            profile: "الملف الشخصي",
             logout: "تسجيل الخروج",
         },
 
@@ -80,27 +67,50 @@ const translations = {
             title: "لوحة التحكم",
             welcome: "مرحبًا بعودتك",
             overview: "نظرة عامة",
-            cashSummary: "ملخص النقد",
-            orderStatus: "حالة العمليات",
-            latestTransactions: "أحدث المعاملات",
-            customers: "العملاء",
-            users: "المستخدمون",
-            operations: "العمليات",
-            transactions: "المعاملات",
-            totalReceipts: "إجمالي المقبوضات",
-            totalPayments: "إجمالي المدفوعات",
-            totalAdvances: "إجمالي السلف",
-            netCash: "صافي النقد",
-            pendingOperations: "العمليات قيد الانتظار",
-            approvedOperations: "العمليات المقبولة",
-            rejectedOperations: "العمليات المرفوضة",
+            income: "الدخل",
+            expenses: "المصروفات",
+            balance: "الرصيد",
+            latestOperations: "أحدث العمليات",
+        },
+
+        operations: {
+            title: "العمليات",
+            add: "إضافة عملية",
+            edit: "تعديل العملية",
+            delete: "حذف العملية",
+            amount: "المبلغ",
+            category: "التصنيف",
+            date: "التاريخ",
+            notes: "ملاحظات",
+            income: "الدخل",
+            expense: "المصروفات",
+        },
+
+        categories: {
+            title: "التصنيفات",
+            income: "الدخل",
+            expense: "المصروفات",
+            add: "إضافة تصنيف",
+            edit: "تعديل التصنيف",
+            delete: "حذف التصنيف",
+        },
+
+        settings: {
+            title: "الإعدادات",
+            general: "عام",
+            financial: "مالي",
+            account: "الحساب",
+            language: "اللغة",
+            currency: "العملة",
+            dateFormat: "تنسيق التاريخ",
+            timezone: "المنطقة الزمنية",
         },
     },
 
     en: {
         app: {
-            name: "Cash Management System",
-            subtitle: "Financial Management & Cash Operations Platform",
+            name: "My Finances",
+            subtitle: "Personal Finance",
         },
 
         common: {
@@ -112,17 +122,15 @@ const translations = {
             search: "Search",
             filter: "Filter",
             all: "All",
-            active: "Active",
-            inactive: "Inactive",
-            pending: "Pending",
-            approved: "Approved",
-            rejected: "Rejected",
             actions: "Actions",
             status: "Status",
             date: "Date",
             name: "Name",
             email: "Email",
-            role: "Role",
+            amount: "Amount",
+            income: "Income",
+            expense: "Expenses",
+            category: "Category",
         },
 
         auth: {
@@ -137,26 +145,16 @@ const translations = {
             password: "Password",
             confirmPassword: "Confirm password",
             fullName: "Full name",
-            accountType: "Account type",
-            pendingTitle: "Registration submitted",
-            pendingMessage:
-                "Your registration request has been submitted and is awaiting administrator review.",
-            pendingStatus: "Pending Approval",
-            returnToLogin: "Return to sign in",
+            email: "Email",
         },
 
         navigation: {
             dashboard: "Dashboard",
             operations: "Operations",
-            customers: "Customers",
-            transactions: "Transactions",
-            approvals: "Approvals",
-            users: "Users",
-            roles: "Roles & Permissions",
+            categories: "Categories",
             reports: "Reports",
-            cashFlow: "Cash Flow",
-            auditLogs: "Audit Logs",
             settings: "Settings",
+            profile: "Profile",
             logout: "Logout",
         },
 
@@ -164,29 +162,54 @@ const translations = {
             title: "Dashboard",
             welcome: "Welcome back",
             overview: "Overview",
-            cashSummary: "Cash Summary",
-            orderStatus: "Operation Status",
-            latestTransactions: "Latest Transactions",
-            customers: "Customers",
-            users: "Users",
-            operations: "Operations",
-            transactions: "Transactions",
-            totalReceipts: "Total Receipts",
-            totalPayments: "Total Payments",
-            totalAdvances: "Total Advances",
-            netCash: "Net Cash",
-            pendingOperations: "Pending Operations",
-            approvedOperations: "Approved Operations",
-            rejectedOperations: "Rejected Operations",
+            income: "Income",
+            expenses: "Expenses",
+            balance: "Balance",
+            latestOperations: "Latest operations",
+        },
+
+        operations: {
+            title: "Operations",
+            add: "Add operation",
+            edit: "Edit operation",
+            delete: "Delete operation",
+            amount: "Amount",
+            category: "Category",
+            date: "Date",
+            notes: "Notes",
+            income: "Income",
+            expense: "Expenses",
+        },
+
+        categories: {
+            title: "Categories",
+            income: "Income",
+            expense: "Expenses",
+            add: "Add category",
+            edit: "Edit category",
+            delete: "Delete category",
+        },
+
+        settings: {
+            title: "Settings",
+            general: "General",
+            financial: "Financial",
+            account: "Account",
+            language: "Language",
+            currency: "Currency",
+            dateFormat: "Date format",
+            timezone: "Timezone",
         },
     },
 };
 
 function getTranslation(language, key) {
-    return key.split(".").reduce(
-        (value, part) => value?.[part],
-        translations[language]
-    ) ?? key;
+    return (
+        key.split(".").reduce(
+            (value, part) => value?.[part],
+            translations[language]
+        ) ?? key
+    );
 }
 
 export function LanguageProvider({ children }) {
@@ -209,11 +232,9 @@ export function LanguageProvider({ children }) {
     }, [language, direction]);
 
     const changeLanguage = (newLanguage) => {
-        if (!SUPPORTED_LANGUAGES.includes(newLanguage)) {
-            return;
+        if (SUPPORTED_LANGUAGES.includes(newLanguage)) {
+            setLanguage(newLanguage);
         }
-
-        setLanguage(newLanguage);
     };
 
     const value = useMemo(

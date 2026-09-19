@@ -1,395 +1,1484 @@
-import { useEffect, useState, useContext } from "react";
-import { useLanguage } from "../context/LanguageContext";
-import api from "../api/axios";
+import {
+    useEffect,
+    useState,
+    useContext,
+} from "react";
+
+import {
+    FaGlobe,
+    FaLock,
+    FaUser,
+    FaWallet,
+    FaPlus,
+    FaEdit,
+    FaPowerOff,
+    FaCheck,
+} from "react-icons/fa";
+
 import { toast } from "react-toastify";
+
+import { useLanguage } from "../context/LanguageContext";
+import { useSettings } from "../context/SettingsContext";
 import { AuthContext } from "../context/AuthContext";
 
+import api from "../api/axios";
+import categoryService from "../services/categoryService";
+import { CURRENCIES } from "../constants/currencies";
+
 function Settings() {
-    const { language } = useLanguage();
+    const {
+        language,
+        changeLanguage,
+    } = useLanguage();
+
+    const {
+        settings,
+        updateSettings,
+        loading: settingsLoading,
+        loadSettings,
+    } = useSettings();
+
     const { user } = useContext(AuthContext);
-    const [activeTab, setActiveTab] = useState("general"); // general, financial, account
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [backupLoading, setBackupLoading] = useState(false);
-    
-    // الإعدادات العامة
-    const [settings, setSettings] = useState({
-        company_name: "",
-        company_email: "",
-        currency_symbol: "$",
-        date_format: "dd/mm/yyyy",
-        timezone: "Asia/Riyadh",
-        default_language: "ar",
-    });
+    const isArabic = language === "ar";
 
-    // الملف الشخصي (كلمة المرور والاسم)
+    const [savingSettings, setSavingSettings] =
+        useState(false);
+
+    const [savingProfile, setSavingProfile] =
+        useState(false);
+
+    const [savingPassword, setSavingPassword] =
+        useState(false);
+
     const [profile, setProfile] = useState({
         name: user?.name || "",
         email: user?.email || "",
         current_password: "",
-        new_password: "",
-        new_password_confirmation: "",
+        password: "",
+        password_confirmation: "",
     });
 
-    const t = {
-        ar: {
-            title: "الإعدادات والحساب",
-            subtitle: "إدارة النظام وحسابك الشخصي",
-            tabs: { general: "عام", financial: "مالي", account: "حسابي" },
-            company: "معلومات المنشأة",
-            companyName: "اسم الشركة",
-            companyNamePlaceholder: "أدخل اسم الشركة",
-            companyEmail: "البريد الإلكتروني للدعم",
-            companyEmailPlaceholder: "support@example.com",
-            financial: "الإعدادات المالية",
-            currency: "رمز العملة",
-            currencyPlaceholder: "مثل: $, ريال",
-            currencyHelp: "سيظهر بجانب المبالغ",
-            dateFormat: "تنسيق التاريخ",
-            general: "عام",
-            timezone: "المنطقة الزمنية",
-            languageLabel: "اللغة الافتراضية",
-            arabic: "العربية",
-            english: "الإنجليزية",
-            security: "الأمان",
-            backup: "نسخ احتياطي",
-            backupDesc: "نسخة كاملة من قاعدة البيانات",
-            backupConfirm: "إنشاء نسخة احتياطية الآن؟",
-            backupSuccess: "تم الإنشاء بنجاح",
-            backupError: "فشل الإنشاء",
-            save: "حفظ",
-            saving: "جارٍ الحفظ...",
-            loading: "جارٍ التحميل...",
-            success: "تم الحفظ بنجاح",
-            error: "حدث خطأ",
-            account: "حسابي",
-            name: "الاسم",
-            email: "البريد الإلكتروني",
-            currentPassword: "كلمة المرور الحالية",
-            newPassword: "كلمة المرور الجديدة",
-            confirmPassword: "تأكيد كلمة المرور",
-            updateProfile: "تحديث الحساب",
-            changePassword: "تغيير كلمة المرور",
-        },
-        en: {
-            title: "Settings & Account",
-            subtitle: "Manage system and personal settings",
-            tabs: { general: "General", financial: "Financial", account: "Account" },
-            company: "Company Info",
-            companyName: "Company Name",
-            companyNamePlaceholder: "Enter company name",
-            companyEmail: "Support Email",
-            companyEmailPlaceholder: "support@example.com",
-            financial: "Financial Settings",
-            currency: "Currency Symbol",
-            currencyPlaceholder: "e.g. $, €",
-            currencyHelp: "Appears next to amounts",
-            dateFormat: "Date Format",
-            general: "General",
-            timezone: "Time Zone",
-            languageLabel: "Default Language",
-            arabic: "Arabic",
-            english: "English",
-            security: "Security",
-            backup: "Backup",
-            backupDesc: "Full database backup",
-            backupConfirm: "Create backup now?",
-            backupSuccess: "Backup created",
-            backupError: "Backup failed",
-            save: "Save",
-            saving: "Saving...",
-            loading: "Loading...",
-            success: "Saved successfully",
-            error: "An error occurred",
-            account: "My Account",
-            name: "Name",
-            email: "Email",
-            currentPassword: "Current Password",
-            newPassword: "New Password",
-            confirmPassword: "Confirm Password",
-            updateProfile: "Update Account",
-            changePassword: "Change Password",
-        },
-    };
+    const [financial, setFinancial] = useState({
+        currency: "USD",
+        currency_symbol: "$",
+        date_format: "dd/mm/yyyy",
+    });
 
-    const lang = language === "ar" ? t.ar : t.en;
-    const dateFormats = [
-        { value: "dd/mm/yyyy", label: "dd/mm/yyyy (25/08/2026)" },
-        { value: "mm/dd/yyyy", label: "mm/dd/yyyy (08/25/2026)" },
-        { value: "yyyy/mm/dd", label: "yyyy/mm/dd (2026/08/25)" },
-        { value: "dd-mm-yyyy", label: "dd-mm-yyyy (25-08-2026)" },
-        { value: "mm-dd-yyyy", label: "mm-dd-yyyy (08-25-2026)" },
-        { value: "yyyy-mm-dd", label: "yyyy-mm-dd (2026-08-25)" },
-        { value: "dd.mm.yyyy", label: "dd.mm.yyyy (25.08.2026)" },
-        { value: "mm.dd.yyyy", label: "mm.dd.yyyy (08.25.2026)" },
-        { value: "yyyy.mm.dd", label: "yyyy.mm.dd (2026.08.25)" },
-    ];
+    const [categoryType, setCategoryType] =
+        useState("expense");
+
+    const [categories, setCategories] =
+        useState([]);
+
+    const [categoriesLoading, setCategoriesLoading] =
+        useState(false);
+
+    const [categorySaving, setCategorySaving] =
+        useState(false);
+
+    const [showCategoryForm, setShowCategoryForm] =
+        useState(false);
+
+    const [editingCategory, setEditingCategory] =
+        useState(null);
+
+    const [categoryForm, setCategoryForm] =
+        useState({
+            name_ar: "",
+            name_en: "",
+        });
+
+    const text = isArabic
+        ? {
+              title: "الإعدادات",
+              subtitle:
+                  "خصص التطبيق بما يناسبك",
+
+              general: "عام",
+              financial: "المال",
+              account: "الحساب",
+              categories: "التصنيفات",
+
+              language: "اللغة",
+              arabic: "العربية",
+              english: "English",
+
+              currency: "العملة",
+              currencyHint:
+                  "سيظهر رمزها بجانب المبالغ",
+              customCurrency: "عملة مخصصة",
+              customCurrencyHint:
+                  "أدخل رمز العملة الذي تريد عرضه",
+
+              dateFormat: "تنسيق التاريخ",
+
+              name: "الاسم",
+              email: "البريد الإلكتروني",
+
+              currentPassword:
+                  "كلمة المرور الحالية",
+              newPassword:
+                  "كلمة المرور الجديدة",
+              confirmPassword:
+                  "تأكيد كلمة المرور",
+
+              save: "حفظ",
+              saving: "جارٍ الحفظ...",
+              updateAccount:
+                  "حفظ بيانات الحساب",
+              changePassword:
+                  "تغيير كلمة المرور",
+
+              saved:
+                  "تم حفظ الإعدادات",
+              profileSaved:
+                  "تم تحديث بيانات الحساب",
+              passwordSaved:
+                  "تم تغيير كلمة المرور",
+              error:
+                  "حدث خطأ، حاول مرة أخرى",
+
+              income: "الدخل",
+              expense: "المصروفات",
+              addCategory:
+                  "إضافة تصنيف",
+              editCategory:
+                  "تعديل التصنيف",
+              arabicName:
+                  "الاسم بالعربية",
+              englishName:
+                  "الاسم بالإنجليزية",
+              add:
+                  "إضافة",
+              update:
+                  "حفظ التعديلات",
+              cancel:
+                  "إلغاء",
+              active:
+                  "فعال",
+              inactive:
+                  "معطّل",
+              disable:
+                  "تعطيل",
+              enable:
+                  "تفعيل",
+              noCategories:
+                  "لا توجد تصنيفات.",
+              categoryAdded:
+                  "تمت إضافة التصنيف",
+              categoryUpdated:
+                  "تم تحديث التصنيف",
+              categoryDisabled:
+                  "تم تعطيل التصنيف",
+              categoryEnabled:
+                  "تم تفعيل التصنيف",
+              categoryRequired:
+                  "أدخل اسم التصنيف باللغتين.",
+              categoryLoading:
+                  "جارٍ تحميل التصنيفات...",
+          }
+        : {
+              title: "Settings",
+              subtitle:
+                  "Customize the app to suit you",
+
+              general: "General",
+              financial: "Money",
+              account: "Account",
+              categories: "Categories",
+
+              language: "Language",
+              arabic: "العربية",
+              english: "English",
+
+              currency: "Currency",
+              currencyHint:
+                  "Shown next to amounts",
+              customCurrency:
+                  "Custom currency",
+              customCurrencyHint:
+                  "Enter the currency symbol to display",
+
+              dateFormat: "Date format",
+
+              name: "Name",
+              email: "Email",
+
+              currentPassword:
+                  "Current password",
+              newPassword:
+                  "New password",
+              confirmPassword:
+                  "Confirm password",
+
+              save: "Save",
+              saving: "Saving...",
+              updateAccount:
+                  "Save account details",
+              changePassword:
+                  "Change password",
+
+              saved:
+                  "Settings saved",
+              profileSaved:
+                  "Account details updated",
+              passwordSaved:
+                  "Password changed",
+              error:
+                  "Something went wrong",
+
+              income: "Income",
+              expense: "Expenses",
+              addCategory:
+                  "Add category",
+              editCategory:
+                  "Edit category",
+              arabicName:
+                  "Arabic name",
+              englishName:
+                  "English name",
+              add:
+                  "Add",
+              update:
+                  "Save changes",
+              cancel:
+                  "Cancel",
+              active:
+                  "Active",
+              inactive:
+                  "Disabled",
+              disable:
+                  "Disable",
+              enable:
+                  "Enable",
+              noCategories:
+                  "No categories.",
+              categoryAdded:
+                  "Category added",
+              categoryUpdated:
+                  "Category updated",
+              categoryDisabled:
+                  "Category disabled",
+              categoryEnabled:
+                  "Category enabled",
+              categoryRequired:
+                  "Enter the category name in both languages.",
+              categoryLoading:
+                  "Loading categories...",
+          };
 
     useEffect(() => {
-        loadSettings();
-    }, []);
+        setFinancial({
+            currency:
+                settings?.currency || "USD",
 
-    const loadSettings = async () => {
+            currency_symbol:
+                settings?.currency_symbol || "$",
+
+            date_format:
+                settings?.date_format ||
+                "dd/mm/yyyy",
+        });
+    }, [settings]);
+
+    useEffect(() => {
+        setProfile((current) => ({
+            ...current,
+            name: user?.name || "",
+            email: user?.email || "",
+        }));
+    }, [user]);
+
+    useEffect(() => {
+        loadCategories(categoryType);
+    }, [categoryType]);
+
+    const loadCategories = async (type) => {
         try {
-            const response = await api.get("/settings");
-            const data = response.data || {};
-            setSettings({
-                company_name: data.company_name || "",
-                company_email: data.company_email || "",
-                currency_symbol: data.currency_symbol || "$",
-                date_format: data.date_format || "dd/mm/yyyy",
-                timezone: data.timezone || "Asia/Riyadh",
-                default_language: data.default_language || "ar",
-            });
-        } catch (error) {
-            console.error("Error loading settings:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            setCategoriesLoading(true);
 
-    const handleSettingsChange = (e) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({ ...prev, [name]: value }));
-    };
+            const data =
+                await categoryService.getByType(
+                    type,
+                    true
+                );
 
-    const handleProfileChange = (e) => {
-        const { name, value } = e.target;
-        setProfile(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSaveSettings = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            await api.put("/settings", settings);
-            toast.success(lang.success);
-        } catch (error) {
-            console.error(error);
-            toast.error(lang.error);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleUpdateProfile = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            await api.put("/profile", { name: profile.name, email: profile.email });
-            toast.success(lang.success);
-            // تحديث localStorage
-            const updatedUser = { ...user, name: profile.name, email: profile.email };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.location.reload();
+            setCategories(
+                Array.isArray(data)
+                    ? data
+                    : []
+            );
         } catch (error) {
             console.error(error);
-            toast.error(error.response?.data?.message || lang.error);
+
+            setCategories([]);
+
+            toast.error(text.error);
         } finally {
-            setSaving(false);
+            setCategoriesLoading(false);
         }
     };
 
-    const handleChangePassword = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-        try {
-            await api.put("/profile/password", {
-                current_password: profile.current_password,
-                new_password: profile.new_password,
-                new_password_confirmation: profile.new_password_confirmation,
-            });
-            toast.success(lang.success);
-            setProfile(prev => ({ ...prev, current_password: "", new_password: "", new_password_confirmation: "" }));
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || lang.error);
-        } finally {
-            setSaving(false);
-        }
+    const getCategoryName = (category) => {
+        return isArabic
+            ? category.name_ar ||
+                  category.name_en
+            : category.name_en ||
+                  category.name_ar;
     };
 
-    const handleBackup = async () => {
-        if (!window.confirm(lang.backupConfirm)) return;
-        setBackupLoading(true);
-        try {
-            await api.post("/backup");
-            toast.success(lang.backupSuccess);
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || lang.backupError);
-        } finally {
-            setBackupLoading(false);
-        }
+    const isCategoryActive = (category) =>
+        category.is_active === true ||
+        category.is_active === 1 ||
+        category.is_active === "1";
+
+    const handleFinancialChange = (event) => {
+        const {
+            name,
+            value,
+        } = event.target;
+
+        setFinancial((current) => ({
+            ...current,
+            [name]: value,
+        }));
     };
 
-    if (loading) {
+    const handleCurrencyChange = (
+        event
+    ) => {
+        const value =
+            event.target.value;
+
+        setFinancial((current) => ({
+            ...current,
+            currency: value,
+        }));
+    };
+
+    const handleProfileChange = (
+        event
+    ) => {
+        const {
+            name,
+            value,
+        } = event.target;
+
+        setProfile((current) => ({
+            ...current,
+            [name]: value,
+        }));
+    };
+
+    const handleLanguageChange = (
+        event
+    ) => {
+        changeLanguage(
+            event.target.value
+        );
+    };
+
+    const handleSaveFinancial =
+        async (event) => {
+            event.preventDefault();
+
+            if (
+                financial.currency ===
+                    "CUSTOM" &&
+                !financial.currency_symbol.trim()
+            ) {
+                toast.error(
+                    text.customCurrencyHint
+                );
+
+                return;
+            }
+
+            try {
+                setSavingSettings(true);
+
+                const success =
+                    await updateSettings({
+                        currency:
+                            financial.currency,
+
+                        currency_symbol:
+                            financial.currency_symbol,
+
+                        date_format:
+                            financial.date_format,
+                    });
+
+                if (!success) {
+                    throw new Error(
+                        "Settings update failed"
+                    );
+                }
+
+                await loadSettings();
+
+                toast.success(
+                    text.saved
+                );
+            } catch (error) {
+                console.error(error);
+
+                toast.error(
+                    text.error
+                );
+            } finally {
+                setSavingSettings(false);
+            }
+        };
+
+    const handleUpdateProfile =
+        async (event) => {
+            event.preventDefault();
+
+            try {
+                setSavingProfile(true);
+
+                const response =
+                    await api.put(
+                        "/profile",
+                        {
+                            name:
+                                profile.name.trim(),
+
+                            email:
+                                profile.email.trim(),
+                        }
+                    );
+
+                const updatedUser = {
+                    ...user,
+                    ...(response.data || {}),
+                    name:
+                        profile.name.trim(),
+                    email:
+                        profile.email.trim(),
+                };
+
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(
+                        updatedUser
+                    )
+                );
+
+                toast.success(
+                    text.profileSaved
+                );
+
+                window.location.reload();
+            } catch (error) {
+                console.error(error);
+
+                toast.error(
+                    error?.response?.data
+                        ?.message ||
+                        text.error
+                );
+            } finally {
+                setSavingProfile(false);
+            }
+        };
+
+    const handleChangePassword =
+        async (event) => {
+            event.preventDefault();
+
+            if (
+                profile.password !==
+                profile.password_confirmation
+            ) {
+                toast.error(
+                    text.error
+                );
+
+                return;
+            }
+
+            try {
+                setSavingPassword(
+                    true
+                );
+
+                await api.put(
+                    "/profile/password",
+                    {
+                        current_password:
+                            profile.current_password,
+
+                        password:
+                            profile.password,
+
+                        password_confirmation:
+                            profile.password_confirmation,
+                    }
+                );
+
+                setProfile(
+                    (current) => ({
+                        ...current,
+                        current_password:
+                            "",
+                        password: "",
+                        password_confirmation:
+                            "",
+                    })
+                );
+
+                toast.success(
+                    text.passwordSaved
+                );
+            } catch (error) {
+                console.error(error);
+
+                toast.error(
+                    error?.response?.data
+                        ?.message ||
+                        text.error
+                );
+            } finally {
+                setSavingPassword(
+                    false
+                );
+            }
+        };
+
+    const resetCategoryForm = () => {
+        setCategoryForm({
+            name_ar: "",
+            name_en: "",
+        });
+
+        setEditingCategory(
+            null
+        );
+
+        setShowCategoryForm(
+            false
+        );
+    };
+
+    const openAddCategory = () => {
+        setEditingCategory(
+            null
+        );
+
+        setCategoryForm({
+            name_ar: "",
+            name_en: "",
+        });
+
+        setShowCategoryForm(
+            true
+        );
+    };
+
+    const openEditCategory = (
+        category
+    ) => {
+        setEditingCategory(
+            category
+        );
+
+        setCategoryForm({
+            name_ar:
+                category.name_ar ||
+                "",
+            name_en:
+                category.name_en ||
+                "",
+        });
+
+        setShowCategoryForm(
+            true
+        );
+    };
+
+    const handleCategoryChange = (
+        event
+    ) => {
+        const {
+            name,
+            value,
+        } = event.target;
+
+        setCategoryForm(
+            (current) => ({
+                ...current,
+                [name]: value,
+            })
+        );
+    };
+
+    const handleCategorySave =
+        async (event) => {
+            event.preventDefault();
+
+            const nameAr =
+                categoryForm.name_ar.trim();
+
+            const nameEn =
+                categoryForm.name_en.trim();
+
+            if (
+                !nameAr ||
+                !nameEn
+            ) {
+                toast.error(
+                    text.categoryRequired
+                );
+
+                return;
+            }
+
+            try {
+                setCategorySaving(
+                    true
+                );
+
+                if (
+                    editingCategory
+                ) {
+                    await categoryService.update(
+                        editingCategory.id,
+                        {
+                            name_ar:
+                                nameAr,
+                            name_en:
+                                nameEn,
+                            type:
+                                editingCategory.type ||
+                                categoryType,
+                            parent_id:
+                                editingCategory.parent_id ??
+                                null,
+                        }
+                    );
+
+                    toast.success(
+                        text.categoryUpdated
+                    );
+                } else {
+                    await categoryService.create(
+                        {
+                            name_ar:
+                                nameAr,
+                            name_en:
+                                nameEn,
+                            type:
+                                categoryType,
+                            parent_id:
+                                null,
+                        }
+                    );
+
+                    toast.success(
+                        text.categoryAdded
+                    );
+                }
+
+                await loadCategories(
+                    categoryType
+                );
+
+                resetCategoryForm();
+            } catch (error) {
+                console.error(error);
+
+                toast.error(
+                    error?.response?.data
+                        ?.message ||
+                        text.error
+                );
+            } finally {
+                setCategorySaving(
+                    false
+                );
+            }
+        };
+
+    const handleToggleCategory =
+        async (category) => {
+            try {
+                await categoryService.toggleStatus(
+                    category.id
+                );
+
+                const active =
+                    isCategoryActive(
+                        category
+                    );
+
+                toast.success(
+                    active
+                        ? text.categoryDisabled
+                        : text.categoryEnabled
+                );
+
+                await loadCategories(
+                    categoryType
+                );
+            } catch (error) {
+                console.error(error);
+
+                toast.error(
+                    error?.response?.data
+                        ?.message ||
+                        text.error
+                );
+            }
+        };
+
+    const getCurrencySymbol =
+        (currency) => {
+            if (!currency) {
+                return "";
+            }
+
+            return isArabic
+                ? currency.symbol_ar ||
+                      currency.symbol_en ||
+                      currency.code
+                : currency.symbol_en ||
+                      currency.symbol_ar ||
+                      currency.code;
+        };
+
+    if (settingsLoading) {
         return (
-            <div className="container mt-4">
-                <div className="text-center py-5">
-                    <div className="spinner-border text-primary" role="status" />
-                    <p className="mt-2">{lang.loading}</p>
+            <div className="finance-page">
+                <div className="finance-empty-state">
+                    <p>
+                        {isArabic
+                            ? "جارٍ التحميل..."
+                            : "Loading..."}
+                    </p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="container mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+        <div
+            className="finance-page settings-page"
+            dir={
+                isArabic
+                    ? "rtl"
+                    : "ltr"
+            }
+        >
+            <div className="finance-page-header">
                 <div>
-                    <h2>{lang.title}</h2>
-                    <p className="text-muted">{lang.subtitle}</p>
+                    <h1>
+                        {text.title}
+                    </h1>
+
+                    <p>
+                        {text.subtitle}
+                    </p>
                 </div>
-                <span className="badge bg-secondary">v2.0</span>
             </div>
 
-            {/* Tabs */}
-            <ul className="nav nav-tabs mb-4">
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === "general" ? "active" : ""}`} onClick={() => setActiveTab("general")}>
-                        {lang.tabs.general}
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === "financial" ? "active" : ""}`} onClick={() => setActiveTab("financial")}>
-                        {lang.tabs.financial}
-                    </button>
-                </li>
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === "account" ? "active" : ""}`} onClick={() => setActiveTab("account")}>
-                        {lang.tabs.account}
-                    </button>
-                </li>
-            </ul>
-
-            {/* Tab Content */}
-            <div className="tab-content">
-                {/* 1. General */}
-                {activeTab === "general" && (
-                    <form onSubmit={handleSaveSettings}>
-                        <div className="card p-4">
-                            <h5 className="mb-3"><span className="me-2">🏢</span> {lang.company}</h5>
-                            <div className="row g-3">
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.companyName}</label>
-                                    <input type="text" className="form-control" name="company_name" value={settings.company_name} onChange={handleSettingsChange} placeholder={lang.companyNamePlaceholder} />
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.companyEmail}</label>
-                                    <input type="email" className="form-control" name="company_email" value={settings.company_email} onChange={handleSettingsChange} placeholder={lang.companyEmailPlaceholder} />
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.timezone}</label>
-                                    <select className="form-select" name="timezone" value={settings.timezone} onChange={handleSettingsChange}>
-                                        <option value="Asia/Riyadh">Asia/Riyadh (UTC+3)</option>
-                                        <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
-                                        <option value="Europe/London">Europe/London (UTC+0)</option>
-                                        <option value="America/New_York">America/New_York (UTC-4)</option>
-                                        <option value="UTC">UTC</option>
-                                    </select>
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.languageLabel}</label>
-                                    <select className="form-select" name="default_language" value={settings.default_language} onChange={handleSettingsChange}>
-                                        <option value="ar">{lang.arabic}</option>
-                                        <option value="en">{lang.english}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="mt-4 d-flex justify-content-end gap-2">
-                                <button type="submit" className="btn btn-primary" disabled={saving}>
-                                    {saving ? <><span className="spinner-border spinner-border-sm me-2" />{lang.saving}</> : lang.save}
-                                </button>
-                            </div>
+            <div className="settings-simple-grid">
+                {/* General */}
+                <section className="settings-card">
+                    <div className="settings-card-header">
+                        <div className="settings-card-icon">
+                            <FaGlobe />
                         </div>
-                    </form>
-                )}
 
-                {/* 2. Financial */}
-                {activeTab === "financial" && (
-                    <form onSubmit={handleSaveSettings}>
-                        <div className="card p-4">
-                            <h5 className="mb-3"><span className="me-2">💰</span> {lang.financial}</h5>
-                            <div className="row g-3">
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.currency}</label>
-                                    <div className="d-flex align-items-center gap-2">
-                                        <input type="text" className="form-control" name="currency_symbol" value={settings.currency_symbol} onChange={handleSettingsChange} placeholder={lang.currencyPlaceholder} style={{ maxWidth: '150px' }} />
-                                        <span className="text-muted" style={{ fontSize: '11px' }}>{lang.currencyHelp}</span>
-                                    </div>
-                                    <div className="mt-2 p-2 bg-light rounded text-center"><strong>{settings.currency_symbol} 1,000.00</strong></div>
-                                </div>
-                                <div className="col-md-6">
-                                    <label className="form-label">{lang.dateFormat}</label>
-                                    <select className="form-select" name="date_format" value={settings.date_format} onChange={handleSettingsChange}>
-                                        {dateFormats.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
-                                    </select>
-                                </div>
-                                <div className="col-12">
-                                    <hr />
-                                    <h6>{lang.security}</h6>
-                                    <p className="text-muted" style={{ fontSize: '12px' }}>{lang.backupDesc}</p>
-                                    <button type="button" className="btn btn-warning" onClick={handleBackup} disabled={backupLoading}>
-                                        {backupLoading ? <><span className="spinner-border spinner-border-sm me-2" />{lang.saving}</> : <>💾 {lang.backup}</>}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="mt-4 d-flex justify-content-end gap-2">
-                                <button type="submit" className="btn btn-primary" disabled={saving}>
-                                    {saving ? <><span className="spinner-border spinner-border-sm me-2" />{lang.saving}</> : lang.save}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                )}
-
-                {/* 3. Account (Profile) */}
-                {activeTab === "account" && (
-                    <div className="row g-4">
-                        <div className="col-md-6">
-                            <div className="card p-4">
-                                <h5 className="mb-3">👤 {lang.account}</h5>
-                                <form onSubmit={handleUpdateProfile}>
-                                    <div className="mb-3">
-                                        <label className="form-label">{lang.name}</label>
-                                        <input type="text" className="form-control" name="name" value={profile.name} onChange={handleProfileChange} />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label className="form-label">{lang.email}</label>
-                                        <input type="email" className="form-control" name="email" value={profile.email} onChange={handleProfileChange} />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                                        {saving ? <><span className="spinner-border spinner-border-sm me-2" />{lang.saving}</> : lang.updateProfile}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                        <div className="col-md-6">
-                            <div className="card p-4">
-                                <h5 className="mb-3">🔒 {lang.changePassword}</h5>
-                                <form onSubmit={handleChangePassword}>
-                                    <div className="mb-3">
-                                        <label className="form-label">{lang.currentPassword}</label>
-                                        <input type="password" className="form-control" name="current_password" value={profile.current_password} onChange={handleProfileChange} required />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label className="form-label">{lang.newPassword}</label>
-                                        <input type="password" className="form-control" name="new_password" value={profile.new_password} onChange={handleProfileChange} required minLength={8} />
-                                    </div>
-                                    <div className="mb-3">
-                                        <label className="form-label">{lang.confirmPassword}</label>
-                                        <input type="password" className="form-control" name="new_password_confirmation" value={profile.new_password_confirmation} onChange={handleProfileChange} required />
-                                    </div>
-                                    <button type="submit" className="btn btn-warning" disabled={saving}>
-                                        {saving ? <><span className="spinner-border spinner-border-sm me-2" />{lang.saving}</> : lang.changePassword}
-                                    </button>
-                                </form>
-                            </div>
+                        <div>
+                            <h2>
+                                {text.general}
+                            </h2>
                         </div>
                     </div>
-                )}
+
+                    <div className="finance-form-group">
+                        <label>
+                            {text.language}
+                        </label>
+
+                        <select
+                            value={language}
+                            onChange={
+                                handleLanguageChange
+                            }
+                        >
+                            <option value="ar">
+                                {text.arabic}
+                            </option>
+
+                            <option value="en">
+                                {text.english}
+                            </option>
+                        </select>
+                    </div>
+                </section>
+
+                {/* Financial */}
+                <section className="settings-card">
+                    <div className="settings-card-header">
+                        <div className="settings-card-icon">
+                            <FaWallet />
+                        </div>
+
+                        <div>
+                            <h2>
+                                {text.financial}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <form
+                        onSubmit={
+                            handleSaveFinancial
+                        }
+                    >
+                        <div className="finance-form-group">
+                            <label>
+                                {text.currency}
+                            </label>
+
+                            <select
+                                name="currency"
+                                value={
+                                    financial.currency
+                                }
+                                onChange={
+                                    handleCurrencyChange
+                                }
+                                disabled={
+                                    savingSettings
+                                }
+                            >
+                                {CURRENCIES.map(
+                                    (currency) => (
+                                        <option
+                                            key={
+                                                currency.code
+                                            }
+                                            value={
+                                                currency.code
+                                            }
+                                        >
+                                            {
+                                                currency.code
+                                            }{" "}
+                                            —{" "}
+                                            {getCurrencySymbol(
+                                                currency
+                                            )}
+                                        </option>
+                                    )
+                                )}
+
+                                <option value="CUSTOM">
+                                    {text.customCurrency}
+                                </option>
+                            </select>
+
+                            {financial.currency ===
+                                "CUSTOM" && (
+                                <div
+                                    style={{
+                                        marginTop:
+                                            "10px",
+                                    }}
+                                >
+                                    <input
+                                        type="text"
+                                        name="currency_symbol"
+                                        value={
+                                            financial.currency_symbol
+                                        }
+                                        onChange={
+                                            handleFinancialChange
+                                        }
+                                        maxLength={
+                                            10
+                                        }
+                                        placeholder={
+                                            text.customCurrencyHint
+                                        }
+                                        disabled={
+                                            savingSettings
+                                        }
+                                    />
+
+                                    <small className="settings-help">
+                                        {
+                                            text.customCurrencyHint
+                                        }
+                                    </small>
+                                </div>
+                            )}
+
+                            {financial.currency !==
+                                "CUSTOM" && (
+                                <small className="settings-help">
+                                    {
+                                        text.currencyHint
+                                    }
+                                </small>
+                            )}
+                        </div>
+
+                        <div className="finance-form-group">
+                            <label>
+                                {text.dateFormat}
+                            </label>
+
+                            <select
+                                name="date_format"
+                                value={
+                                    financial.date_format
+                                }
+                                onChange={
+                                    handleFinancialChange
+                                }
+                                disabled={
+                                    savingSettings
+                                }
+                            >
+                                <option value="dd/mm/yyyy">
+                                    DD/MM/YYYY
+                                </option>
+
+                                <option value="mm/dd/yyyy">
+                                    MM/DD/YYYY
+                                </option>
+
+                                <option value="yyyy/mm/dd">
+                                    YYYY/MM/DD
+                                </option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="finance-primary-button"
+                            disabled={
+                                savingSettings
+                            }
+                        >
+                            {savingSettings
+                                ? text.saving
+                                : text.save}
+                        </button>
+                    </form>
+                </section>
+
+                {/* Account */}
+                <section className="settings-card">
+                    <div className="settings-card-header">
+                        <div className="settings-card-icon">
+                            <FaUser />
+                        </div>
+
+                        <div>
+                            <h2>
+                                {text.account}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <form
+                        onSubmit={
+                            handleUpdateProfile
+                        }
+                    >
+                        <div className="finance-form-group">
+                            <label>
+                                {text.name}
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                value={
+                                    profile.name
+                                }
+                                onChange={
+                                    handleProfileChange
+                                }
+                                required
+                            />
+                        </div>
+
+                        <div className="finance-form-group">
+                            <label>
+                                {text.email}
+                            </label>
+
+                            <input
+                                type="email"
+                                name="email"
+                                value={
+                                    profile.email
+                                }
+                                onChange={
+                                    handleProfileChange
+                                }
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="finance-primary-button"
+                            disabled={
+                                savingProfile
+                            }
+                        >
+                            {savingProfile
+                                ? text.saving
+                                : text.updateAccount}
+                        </button>
+                    </form>
+                </section>
+
+                {/* Password */}
+                <section className="settings-card">
+                    <div className="settings-card-header">
+                        <div className="settings-card-icon">
+                            <FaLock />
+                        </div>
+
+                        <div>
+                            <h2>
+                                {text.changePassword}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <form
+                        onSubmit={
+                            handleChangePassword
+                        }
+                    >
+                        <div className="finance-form-group">
+                            <label>
+                                {
+                                    text.currentPassword
+                                }
+                            </label>
+
+                            <input
+                                type="password"
+                                name="current_password"
+                                value={
+                                    profile.current_password
+                                }
+                                onChange={
+                                    handleProfileChange
+                                }
+                                required
+                            />
+                        </div>
+
+                        <div className="finance-form-group">
+                            <label>
+                                {
+                                    text.newPassword
+                                }
+                            </label>
+
+                            <input
+                                type="password"
+                                name="password"
+                                value={
+                                    profile.password
+                                }
+                                onChange={
+                                    handleProfileChange
+                                }
+                                minLength={8}
+                                required
+                            />
+                        </div>
+
+                        <div className="finance-form-group">
+                            <label>
+                                {
+                                    text.confirmPassword
+                                }
+                            </label>
+
+                            <input
+                                type="password"
+                                name="password_confirmation"
+                                value={
+                                    profile.password_confirmation
+                                }
+                                onChange={
+                                    handleProfileChange
+                                }
+                                minLength={8}
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="finance-primary-button"
+                            disabled={
+                                savingPassword
+                            }
+                        >
+                            {savingPassword
+                                ? text.saving
+                                : text.changePassword}
+                        </button>
+                    </form>
+                </section>
+
+                {/* Categories */}
+                <section
+                    className="settings-card"
+                    style={{
+                        gridColumn:
+                            "1 / -1",
+                    }}
+                >
+                    <div className="settings-card-header">
+                        <div className="settings-card-icon">
+                            <FaWallet />
+                        </div>
+
+                        <div
+                            style={{
+                                flex: 1,
+                            }}
+                        >
+                            <h2>
+                                {
+                                    text.categories
+                                }
+                            </h2>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="finance-primary-button"
+                            onClick={
+                                openAddCategory
+                            }
+                        >
+                            <FaPlus
+                                size={11}
+                            />
+
+                            {text.addCategory}
+                        </button>
+                    </div>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginBottom:
+                                "20px",
+                            flexWrap:
+                                "wrap",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            className={
+                                categoryType ===
+                                "expense"
+                                    ? "finance-primary-button"
+                                    : "finance-secondary-button"
+                            }
+                            onClick={() =>
+                                setCategoryType(
+                                    "expense"
+                                )
+                            }
+                        >
+                            {text.expense}
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                categoryType ===
+                                "income"
+                                    ? "finance-primary-button"
+                                    : "finance-secondary-button"
+                            }
+                            onClick={() =>
+                                setCategoryType(
+                                    "income"
+                                )
+                            }
+                        >
+                            {text.income}
+                        </button>
+                    </div>
+
+                    {showCategoryForm && (
+                        <form
+                            onSubmit={
+                                handleCategorySave
+                            }
+                            style={{
+                                border:
+                                    "1px solid var(--border-color)",
+                                borderRadius:
+                                    "12px",
+                                padding:
+                                    "16px",
+                                marginBottom:
+                                    "18px",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display:
+                                        "grid",
+                                    gridTemplateColumns:
+                                        "repeat(auto-fit, minmax(220px, 1fr))",
+                                    gap:
+                                        "12px",
+                                }}
+                            >
+                                <div className="finance-form-group">
+                                    <label>
+                                        {
+                                            text.arabicName
+                                        }
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="name_ar"
+                                        value={
+                                            categoryForm.name_ar
+                                        }
+                                        onChange={
+                                            handleCategoryChange
+                                        }
+                                        required
+                                        disabled={
+                                            categorySaving
+                                        }
+                                    />
+                                </div>
+
+                                <div className="finance-form-group">
+                                    <label>
+                                        {
+                                            text.englishName
+                                        }
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="name_en"
+                                        value={
+                                            categoryForm.name_en
+                                        }
+                                        onChange={
+                                            handleCategoryChange
+                                        }
+                                        required
+                                        disabled={
+                                            categorySaving
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display:
+                                        "flex",
+                                    gap:
+                                        "8px",
+                                    marginTop:
+                                        "12px",
+                                }}
+                            >
+                                <button
+                                    type="submit"
+                                    className="finance-primary-button"
+                                    disabled={
+                                        categorySaving
+                                    }
+                                >
+                                    {categorySaving
+                                        ? text.saving
+                                        : editingCategory
+                                          ? text.update
+                                          : text.add}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="finance-secondary-button"
+                                    onClick={
+                                        resetCategoryForm
+                                    }
+                                    disabled={
+                                        categorySaving
+                                    }
+                                >
+                                    {text.cancel}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {categoriesLoading ? (
+                        <div className="finance-empty-state">
+                            <p>
+                                {
+                                    text.categoryLoading
+                                }
+                            </p>
+                        </div>
+                    ) : categories.length ===
+                      0 ? (
+                        <div className="finance-empty-state">
+                            <p>
+                                {
+                                    text.noCategories
+                                }
+                            </p>
+                        </div>
+                    ) : (
+                        <div
+                            style={{
+                                display:
+                                    "flex",
+                                flexDirection:
+                                    "column",
+                                gap:
+                                    "8px",
+                            }}
+                        >
+                            {categories.map(
+                                (
+                                    category
+                                ) => {
+                                    const active =
+                                        isCategoryActive(
+                                            category
+                                        );
+
+                                    return (
+                                        <div
+                                            key={
+                                                category.id
+                                            }
+                                            style={{
+                                                display:
+                                                    "flex",
+                                                alignItems:
+                                                    "center",
+                                                gap:
+                                                    "12px",
+                                                padding:
+                                                    "12px",
+                                                border:
+                                                    "1px solid var(--border-color)",
+                                                borderRadius:
+                                                    "10px",
+                                                opacity:
+                                                    active
+                                                        ? 1
+                                                        : 0.55,
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    flex:
+                                                        1,
+                                                    minWidth:
+                                                        0,
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        fontWeight:
+                                                            600,
+                                                    }}
+                                                >
+                                                    {
+                                                        getCategoryName(
+                                                            category
+                                                        )
+                                                    }
+                                                </div>
+
+                                                <small className="settings-help">
+                                                    {active
+                                                        ? text.active
+                                                        : text.inactive}
+                                                </small>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="finance-secondary-button"
+                                                onClick={() =>
+                                                    openEditCategory(
+                                                        category
+                                                    )
+                                                }
+                                                title={
+                                                    text.editCategory
+                                                }
+                                            >
+                                                <FaEdit
+                                                    size={
+                                                        11
+                                                    }
+                                                />
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="finance-secondary-button"
+                                                onClick={() =>
+                                                    handleToggleCategory(
+                                                        category
+                                                    )
+                                                }
+                                                title={
+                                                    active
+                                                        ? text.disable
+                                                        : text.enable
+                                                }
+                                            >
+                                                {active ? (
+                                                    <FaPowerOff
+                                                        size={
+                                                            11
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <FaCheck
+                                                        size={
+                                                            11
+                                                        }
+                                                    />
+                                                )}
+                                            </button>
+                                        </div>
+                                    );
+                                }
+                            )}
+                        </div>
+                    )}
+                </section>
             </div>
         </div>
     );
